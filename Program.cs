@@ -17,6 +17,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 
+
 // ---------- Swagger ----------
 builder.Services.AddSwaggerGen(c =>
 {
@@ -188,7 +189,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseCors("AllowFrontend");
-app.UseStaticFiles();
+
 
 //app.UseHttpsRedirection();
 

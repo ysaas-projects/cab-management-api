@@ -68,7 +68,7 @@ namespace cab_management.Controllers
                     user.Email,
                     user.MobileNumber,
                     user.LastLoginAt,
-                    user.FirmId,
+                    //user.FirmId,
                     //FirmName = user.Firm?.FirmName,
                     //FirmCode = user.Firm?.FirmCode,
                     Roles = roles
@@ -194,17 +194,17 @@ namespace cab_management.Controllers
                 Username = user.UserName,
                 Email = user.Email,
                 Roles = roles,
-                FirmId = user.FirmId,
-                ActiveStatus = activeStatus,
-                //FirmName = user.Firm?.FirmName,
-                //FirmCode = user.Firm?.FirmCode,
-                FirmType = user.FirmType,
+                //FirmId = user.FirmId,
+                //ActiveStatus = activeStatus,
+                ////FirmName = user.Firm?.FirmName,
+                ////FirmCode = user.Firm?.FirmCode,
+                //FirmType = user.FirmType,
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
                 AccessTokenExpiry = DateTime.UtcNow.AddMinutes(_jwtService.GetAccessTokenExpiryMinutes()),
                 SessionId = session.SessionId,
                 SessionExpiresAt = session.RefreshTokenExpiry,
-                LastLoginAt = user.LastLoginAt
+                //LastLoginAt = user.LastLoginAt
             };
 
 
