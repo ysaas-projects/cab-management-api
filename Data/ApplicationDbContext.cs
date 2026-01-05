@@ -1,4 +1,5 @@
-﻿using cab_management.Models;
+﻿using cab_management.Controllers;
+using cab_management.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Reflection;
@@ -22,6 +23,9 @@ namespace cab_management.Data
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
+        public DbSet<Organization> Organizations { get; set; }
+        public DbSet<Firm> Firms { get; set; }
+
 
         // =========================
         // MODEL CONFIGURATION

@@ -98,3 +98,18 @@ CREATE TABLE UserRoles
     -- Composite unique constraint
     CONSTRAINT UQ_User_Role UNIQUE (UserId, RoleId)
 );
+
+--------------ORGANIZATIONS--------------
+Create table Organizations(
+	OrganizationId int identity primary key ,
+	OrganizationName varchar(100),
+	LogoImagePath varchar(max),
+	Address varchar(100),
+	MobileNumber varchar(13),
+	GstNumber varchar(15),
+	IsActive bit  Default 1,
+	CreatedAt datetime Default 1,
+	UpdatedAt Datetime default null,
+	IsDeleted bit  Default 0
+);
+
