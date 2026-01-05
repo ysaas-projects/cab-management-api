@@ -66,6 +66,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // ---------- Services ----------
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPrizingRuleService, PrizingRuleService>();
 
 // ---------- CORS (VERY IMPORTANT) ----------
 builder.Services.AddCors(options =>
