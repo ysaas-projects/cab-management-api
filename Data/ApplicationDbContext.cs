@@ -25,6 +25,8 @@ namespace cab_management.Data
         public DbSet<Firms> Firms { get; set; }
         public DbSet<FirmTerms> FirmTerms { get; set; }
 
+        public DbSet<Customer> Customers { get; set; }
+
         // =========================
         // MODEL CONFIGURATION
         // =========================

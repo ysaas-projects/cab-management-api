@@ -113,5 +113,21 @@ IsDeleted BIT DEFAULT 0
 );
 
 
+CREATE TABLE Customer
+(
+    CustomerId INT IDENTITY PRIMARY KEY,
+    FirmId INT NOT NULL,
+    CustomerName VARCHAR(100),
+    LogoImagePath VARCHAR(max),
+    Address VARCHAR(max),
+    GstNumber VARCHAR(20),
+    IsActive BIT DEFAULT 1,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT DEFAULT 0
+    --CONSTRAINT FK_Customer_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
+);
+
+
 
 
