@@ -80,7 +80,6 @@ namespace cab_management.Controllers
 
                 if (dto.LogoImage != null && dto.LogoImage.Length > 0)
                 {
-                    // sanitize organization name for folder name (remove spaces, special chars)
                     var folderName = dto.OrganizationName.Replace(" ", "_");
                     var uploadsRootFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", folderName);
 
@@ -97,7 +96,6 @@ namespace cab_management.Controllers
                         await dto.LogoImage.CopyToAsync(stream);
                     }
 
-                    // Save relative path to DB (relative to wwwroot)
                     logoPath = Path.Combine("uploads", folderName, fileName).Replace("\\", "/");
                 }
 

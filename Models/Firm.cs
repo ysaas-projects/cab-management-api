@@ -8,7 +8,10 @@ namespace cab_management.Models
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int FirmId { get; set; }
+        [Required]
         public string? FirmName { get; set; }
+
+        [Required]
         public string? FirmCode { get; set; }
         // ---------------- STATUS FLAGS ----------------
         [Required]
@@ -18,33 +21,43 @@ namespace cab_management.Models
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public ICollection<FirmDetail> FirmDetails { get; set; } = new List<FirmDetail>();
+
     }
-    public class FirmCreateDTO
+    public class FirmCreateDto
     {
-        [Key]
+        [Required]
         public string FirmName { get; set; }
+
+        [Required]
         public string FirmCode { get; set; }
 
-        // ---------------- STATUS FLAGS ----------------
-        [Required]
         public bool IsActive { get; set; } = true;
     }
-    public class FirmUpdateDTO
+
+    public class FirmUpdateDto
     {
-        [Key]
+        [Required]
+        public int FirmId { get; set; }
+
+        [Required]
+        public string FirmName { get; set; }
+
+        [Required]
+        public string FirmCode { get; set; }
+
+        public bool IsActive { get; set; }
+    }
+
+
+    public class FirmResponseDto
+    {
         public int FirmId { get; set; }
         public string FirmName { get; set; }
         public string FirmCode { get; set; }
-        // ---------------- STATUS FLAGS ----------------
-        [Required]
         public bool IsActive { get; set; }
 
+        public FirmDetailsDto? FirmDetails { get; set; }
     }
-    public class FirmResponseDto
-    {
-        public string FirmName { get; set; }
-        public string FirmCode { get; set; }
-        public bool IsActive { get; set; }
-        public bool IsDeleted { get; set; }
-    }
+
 }

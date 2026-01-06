@@ -113,3 +113,35 @@ Create table Organizations(
 	IsDeleted bit  Default 0
 );
 
+--------------FIRMS--------------
+CREATE TABLE Firms
+(
+    FirmId INT IDENTITY PRIMARY KEY,
+    FirmName VARCHAR(100) NOT NULL,
+    FirmCode VARCHAR(20) UNIQUE,
+    IsActive BIT DEFAULT 1,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+	IsDeleted BIT DEFAULT 0
+);
+
+--------------FIRM DETAILS--------------
+CREATE TABLE FirmDetails
+(
+    FirmDetailsId INT IDENTITY PRIMARY KEY,
+    FirmId INT NOT NULL,  
+    Address VARCHAR(255),--null
+    ContactNumber VARCHAR(15),--null
+    ContactPerson VARCHAR(100),--null
+    LogoImagePath VARCHAR(255),--null
+    GstNumber VARCHAR(50),--null
+    IsActive BIT DEFAULT 1,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT DEFAULT 0,
+
+     -- Foreign key constraints
+        --CONSTRAINT FK_FirmDetails_Firms
+        --FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
+);
+
