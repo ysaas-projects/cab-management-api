@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -195,6 +196,20 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
+//  Log database connection details
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    var connection = dbContext.Database.GetDbConnection();
+
+    Console.WriteLine("===== Database Connection Info =====");
+    Console.WriteLine($"Provider     : {dbContext.Database.ProviderName}");
+    Console.WriteLine($"Server       : {connection.DataSource}");
+    Console.WriteLine($"Database     : {connection.Database}");
+    Console.WriteLine($"State        : {connection.State}");
+    Console.WriteLine("====================================");
+}
 
 // Default redirect to swagger
 app.MapGet("/", context =>

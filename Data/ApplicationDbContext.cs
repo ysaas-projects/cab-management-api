@@ -22,6 +22,8 @@ namespace cab_management.Data
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
+        public DbSet<Firms> Firms { get; set; }
+        public DbSet<FirmTerms> FirmTerms { get; set; }
 
         // =========================
         // MODEL CONFIGURATION

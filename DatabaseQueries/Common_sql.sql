@@ -98,3 +98,20 @@ CREATE TABLE UserRoles
     -- Composite unique constraint
     CONSTRAINT UQ_User_Role UNIQUE (UserId, RoleId)
 );
+
+
+CREATE TABLE FirmTerms
+(
+FirmTermId INT IDENTITY PRIMARY KEY,
+FirmId INT NOT NULL,
+Description VARCHAR(200),
+IsActive BIT DEFAULT 1,
+CreatedAt DATETIME DEFAULT GETDATE(),
+UpdatedAt DATETIME NULL,
+IsDeleted BIT DEFAULT 0
+-- CONSTRAINT FK_FirmTerms_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
+);
+
+
+
+
