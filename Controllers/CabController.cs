@@ -32,11 +32,20 @@ namespace cab_management.Controllers
                     .Where(c => c.IsDeleted != true)
                     .ToListAsync();
 
-                    return ApiResponse(true, "Cabs Fetched Succefully", cabs);
+                    return ApiResponse(
+                        success: true,
+                        message:"Cabs Fetched Succefully",
+                        data:cabs
+                        );
                 }
                 catch (Exception ex)
                 {
-                    return ApiResponse(false, "Something Went wrong", ex.Message);
+                    return ApiResponse(
+                        success:false,
+                        message:"Something Went wrong",
+                        error:ex.Message,
+                        statusCode:500
+                        );
                 }
             }
 
@@ -47,42 +56,60 @@ namespace cab_management.Controllers
             {
                 try
                 {
-                    var c = _context.Cabs.
+                    var cab = _context.Cabs.
                     FirstOrDefault(x => x.CabId.Equals(id) && x.IsDeleted.Equals(false));
 
-                    if (c != null)
+                    if (cab != null)
                     {
-                        return ApiResponse(true, "Cab Fetched Successfully", c);
+                        return ApiResponse(
+                            success:true,
+                            message:"Cab Fetched Successfully",
+                            data:cab
+                            );
                     }
                     else
                     {
-                        return ApiResponse(false, "Record Not Found", 404);
+                        return ApiResponse(
+                            success:false,
+                            message:"Record Not Found",
+                            statusCode:404
+                            );
                     }
 
                 }
                 catch (Exception ex)
                 {
-                    return ApiResponse(false, "Something Went Wrong", ex.Message);
+                    return ApiResponse(
+                        success:false,
+                        message:"Something Went Wrong",
+                        error:ex.Message,
+                        statusCode:500
+                        );
                 }
             }
 
             [HttpPost]
             [Route("create")]
-            public async Task<IActionResult> CreateData([FromBody] CreateCabDto cab)
+            public async Task<IActionResult> CreateData([FromForm] CreateCabDto cab)
             {
                 try
                 {
                     if (!ModelState.IsValid)
                     {
-                        var errors = ModelState.Values
+                        var errorlst = ModelState.Values
                             .SelectMany(v => v.Errors)
                             .Select(x => x.ErrorMessage)
                             .ToList();
 
-                        return ApiResponse(false, "Validation Failed", errors);
+                    return ApiResponse(
+                        success:false,
+                        message:"validation failed",
+                        errors:errorlst,
+                        statusCode:400
+                        );
                     }
 
-                    Cab c = new Cab()
+                    Cab cabdata = new Cab()
                     {
                         OrganizationId = cab.OrganizationId,
                         CabType = cab.CabType,
@@ -91,46 +118,83 @@ namespace cab_management.Controllers
                         IsActive = cab.IsActive
                     };
 
-                    await _context.Cabs.AddAsync(c);
+                    await _context.Cabs.AddAsync(cabdata);
                     _context.SaveChanges();
-                    return ApiResponse(false, "Data Added SuccessFully", c);
+
+                    return ApiResponse(
+                    success: true,
+                    message: "Record Added SuccessFully",
+                    data:cabdata
+                    );
                 }
                 catch (Exception ex)
                 {
-                    return ApiResponse(false, "Something Went Wrong", ex.Message);
+                    return ApiResponse(
+                        success:false,
+                        message:"Something Went Wrong",
+                        error:ex.Message,
+                        statusCode:500
+                        );
                 }
             }
 
             [HttpPut]
             [Route("update{id}")]
-            public async Task<IActionResult> UpdateData(int id, UpdateCabDto cab)
+            public async Task<IActionResult> UpdateData(int id, [FromForm]UpdateCabDto cab)
             {
 
                 try
                 {
-                    var c = await _context.Cabs.FindAsync(id);
-                    if (!ModelState.IsValid && !ModelState.IsNullOrEmpty())
+                    var cabdata = await _context.Cabs.
+                    FindAsync(id);
+                    if(cabdata!=null)
                     {
-                        var errors = ModelState.Values
-                            .SelectMany(v => v.Errors)
-                            .Select(x => x.ErrorMessage)
-                            .ToList();
-                        return ApiResponse(false, "Validation Failed", errors);
+                        if (!ModelState.IsValid && !ModelState.IsNullOrEmpty())
+                        {
+                            var errorlst = ModelState.Values
+                                .SelectMany(v => v.Errors)
+                                .Select(x => x.ErrorMessage)
+                                .ToList();
+                            return ApiResponse(
+                                success: false,
+                                message: "Validation Failed",
+                                errors: errorlst,
+                                statusCode: 400
+                                );
+                        }
+                        else
+                        {
+                            cabdata.OrganizationId = cab.OrganizationId;
+                            cabdata.CabType = cab.CabType;
+                            cabdata.UpdetedAt = DateTime.Now;
+                            cabdata.IsDeleted = cab.IsDeleted;
+                            cabdata.IsActive = cab.IsActive;
+                            _context.SaveChanges();
+                            return ApiResponse(
+                                success: true,
+                                message: "Cab Updated Successfully",
+                                data: cab
+                                );
+                        }
+
                     }
                     else
                     {
-                        c.OrganizationId = cab.OrganizationId;
-                        c.CabType = cab.CabType;
-                        c.UpdetedAt = DateTime.Now;
-                        c.IsDeleted = cab.IsDeleted;
-                        c.IsActive = cab.IsActive;
+                        return ApiResponse(
+                            success: false,
+                            message:"Record Not Found",
+                            statusCode:404
+                        );
                     }
-                    _context.SaveChanges();
-                    return ApiResponse(true, "Cab Fetched Successfully", cab);
                 }
                 catch (Exception ex)
                 {
-                    return ApiResponse(false, "Something Went Wrong", ex.Message);
+                    return ApiResponse(
+                        success:false,
+                        message:"Something Went Wrong",
+                        error:ex.Message,
+                        statusCode:500
+                        );
                 }
             }
 
@@ -146,7 +210,11 @@ namespace cab_management.Controllers
 
                     if (cab == null)
                     {
-                        return ApiResponse(false, "Record Not Found", 400);
+                        return ApiResponse(
+                            success:false,
+                            message:"Record Not Found",
+                            statusCode:400
+                            );
                     }
                     else
                     {
@@ -154,11 +222,19 @@ namespace cab_management.Controllers
                         _context.SaveChanges();
 
                     }
-                    return ApiResponse(true, "Record Deleted Successfully");
+                    return ApiResponse(
+                        success:true, 
+                        message:"Record Deleted Successfully"
+                        );
                 }
                 catch (Exception ex)
                 {
-                    return ApiResponse(false, "Something Went Wrong", ex.Message);
+                    return ApiResponse(
+                        success:false, 
+                        message:"Something Went Wrong",
+                        error:ex.Message,
+                        statusCode:500
+                        );
                 }
             }
 
