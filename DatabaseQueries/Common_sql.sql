@@ -80,6 +80,19 @@ CREATE TABLE Roles
     IsActive BIT DEFAULT 1,
     IsDeleted BIT DEFAULT 0
 );
+CREATE TABLE Organizations
+(
+    OrganizationId INT IDENTITY PRIMARY KEY,
+	OrganizationName VARCHAR(150) NOT NULL,
+    LogoImagePath VARCHAR(MAX) NULL,
+    Address VARCHAR(100) NULL,
+    MobileNumber VARCHAR(13) NULL,
+    GstNumber VARCHAR(15) NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0
+);
 
 CREATE TABLE UserRoles
 (
