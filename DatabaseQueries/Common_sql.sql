@@ -1,4 +1,4 @@
-
+n
 CREATE DATABASE cab_management;
 
 use cab_management;
@@ -12,13 +12,13 @@ CREATE TABLE Firms
     IsActive BIT DEFAULT 1,
     CreatedAt DATETIME DEFAULT GETDATE(),
     UpdatedAt DATETIME NULL,
-	IsDeleted BIT DEFAULT 0
+    IsDeleted BIT DEFAULT 0
 );
 
 CREATE TABLE Users (
     UserId INT IDENTITY(1,1) PRIMARY KEY,
     FirmId INT NULL,
-	FirmType NVARCHAR(20) NULL,		-- Admin, Mill, Company
+    FirmType NVARCHAR(20) NULL,		-- Admin, Mill, Company
     UserName VARCHAR(30) UNIQUE NOT NULL,
     PasswordHash VARCHAR(255) NOT NULL,  -- Store only hashed passwords (updated length)
     Email VARCHAR(255) NULL,             -- Increased length for modern emails
@@ -27,7 +27,7 @@ CREATE TABLE Users (
     MobileNumberConfirmed BIT DEFAULT 0,
     AccessFailedCount TINYINT DEFAULT 0,
     IsActive BIT DEFAULT 1,
-	LastLoginAt DATETIME NULL,
+    LastLoginAt DATETIME NULL,
     SecurityStamp UNIQUEIDENTIFIER DEFAULT NEWID(),  -- Forces logout on critical changes
     LockoutEnd DATETIME NULL,            -- Account lockout expiration
     LockoutEnabled BIT DEFAULT 1,        -- Enable account lockout
@@ -50,7 +50,7 @@ CREATE TABLE Users (
 CREATE TABLE UserSessions (
     SessionId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     UserId INT NOT NULL,
-	Jti NVARCHAR(450) NULL,
+    Jti NVARCHAR(450) NULL,
     AccessToken VARCHAR(MAX) NULL,           -- Can store JWT if needed (usually not recommended)
     RefreshToken VARCHAR(255) NOT NULL,      -- Hashed refresh token
     RefreshTokenExpiry DATETIME NOT NULL,
@@ -75,8 +75,8 @@ CREATE TABLE UserSessions (
 
 CREATE TABLE Roles
 (
-	RoleId SMALLINT IDENTITY PRIMARY KEY,
-	RoleName VARCHAR(50),
+    RoleId SMALLINT IDENTITY PRIMARY KEY,
+    RoleName VARCHAR(50),
     IsActive BIT DEFAULT 1,
     IsDeleted BIT DEFAULT 0
 );
@@ -127,6 +127,21 @@ CREATE TABLE Customer
     IsDeleted BIT DEFAULT 0
     --CONSTRAINT FK_Customer_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
 );
+
+
+CREATE TABLE CustomerUsers
+(
+CustomerUserId INT IDENTITY PRIMARY KEY,
+CustomerId INT NOT NULL,
+UserName VARCHAR(100),
+MobileNumber VARCHAR(20) NULL, --Standardized length     
+IsActive BIT DEFAULT 1,
+CreatedAt DATETIME DEFAULT GETDATE(),
+UpdatedAt DATETIME NULL,
+IsDeleted BIT DEFAULT 0
+--CONSTRAINT FK_CustomerUsers_Customer FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId)
+)
+
 
 
 

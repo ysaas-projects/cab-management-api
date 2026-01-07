@@ -27,6 +27,8 @@ namespace cab_management.Data
 
         public DbSet<Customer> Customers { get; set; }
 
+        public DbSet<CustomerUser> CustomerUsers { get; set; }
+
         // =========================
         // MODEL CONFIGURATION
         // =========================
