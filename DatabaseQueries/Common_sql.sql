@@ -100,6 +100,7 @@ CREATE TABLE UserRoles
 );
 
 
+--------------FirmTerms---------------------
 CREATE TABLE FirmTerms
 (
 FirmTermId INT IDENTITY PRIMARY KEY,
@@ -112,7 +113,7 @@ IsDeleted BIT DEFAULT 0
 -- CONSTRAINT FK_FirmTerms_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
 );
 
-
+------------------Customer-------------------
 CREATE TABLE Customer
 (
     CustomerId INT IDENTITY PRIMARY KEY,
@@ -128,7 +129,7 @@ CREATE TABLE Customer
     --CONSTRAINT FK_Customer_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
 );
 
-
+-----------------CustomerUsers------------------------
 CREATE TABLE CustomerUsers
 (
 CustomerUserId INT IDENTITY PRIMARY KEY,
@@ -141,8 +142,4 @@ UpdatedAt DATETIME NULL,
 IsDeleted BIT DEFAULT 0
 --CONSTRAINT FK_CustomerUsers_Customer FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId)
 )
-
-
-
-
 

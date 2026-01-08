@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace cab_management.Models
 {
-    public class FirmTerms
+    public class FirmTerm
     {
         [Key]
         public int FirmTermId { get; set; }
@@ -26,6 +26,9 @@ namespace cab_management.Models
 
     }
 
+    // ==============================
+    // UPDATE FIRMTERM DTO 
+    // ==============================
     public class UpdateFirmTermDto
     {
         [Required]
@@ -35,6 +38,10 @@ namespace cab_management.Models
         public bool IsActive { get; set; }
     }
 
+
+    // ==============================
+    // CREATE FIRMTERM DTO
+    // ==============================
 
     public class CreateFirmTermDto
     {
@@ -47,8 +54,5 @@ namespace cab_management.Models
 
         public bool IsActive { get; set; } = true;
     }
-
-
-
 
 }

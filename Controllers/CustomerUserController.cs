@@ -20,9 +20,9 @@ namespace cab_management.Controllers
             _context = context;
         }
 
-        // ------------------------------
-        // GET ALL
-        // ------------------------------
+        // =============================
+        // GET ALL CUSTOMERUSERS
+        // =============================
         [HttpGet]
         public async Task<IActionResult> GetCustomerUsers()
         {
@@ -34,9 +34,9 @@ namespace cab_management.Controllers
             return ApiResponse(true, "Customer users retrieved successfully", users);
         }
 
-        // ------------------------------
-        // GET BY ID
-        // ------------------------------
+        // ==============================
+        // GET CUSTOMERUSERS BY ID
+        // ==============================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCustomerUserById(int id)
         {
@@ -47,8 +47,10 @@ namespace cab_management.Controllers
                 return ApiResponse(false, "Customer user not found", error: "NotFound");
 
             return ApiResponse(true, "Customer user retrieved successfully", user);
-        }// ==============================
-        // CREATE
+        }
+        
+        // ==============================
+        // CREATE CUSTOMERUSERS
         // ==============================
         [Authorize(AuthenticationSchemes =
             JwtBearerDefaults.AuthenticationScheme + "," +
@@ -61,14 +63,12 @@ namespace cab_management.Controllers
                 if (!ModelState.IsValid)
                     return ApiResponse(false, "Invalid data");
 
-                // Check customer exists
                 bool customerExists = await _context.Customers
                     .AnyAsync(c => c.CustomerId == dto.CustomerId && !c.IsDeleted);
 
                 if (!customerExists)
                     return ApiResponse(false, "Invalid CustomerId", error: "BadRequest");
 
-                // Duplicate check (same customer + username)
                 bool duplicate = await _context.CustomerUsers.AnyAsync(cu =>
                     cu.CustomerId == dto.CustomerId &&
                     cu.UserName.ToLower() == dto.UserName.ToLower() &&
@@ -108,8 +108,9 @@ namespace cab_management.Controllers
 
 
         // ==============================
-        // UPDATE
+        // UPDATE CUSTOMERUSERS
         // ==============================
+
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCustomerUser(int id, [FromBody] UpdateCustomerUserDto model)
         {
@@ -126,7 +127,6 @@ namespace cab_management.Controllers
 
                 string newUserName = model.UserName.Trim();
 
-                // Duplicate check
                 bool duplicate = await _context.CustomerUsers.AnyAsync(cu =>
                     cu.CustomerId == user.CustomerId &&
                     cu.CustomerUserId != id &&
@@ -182,9 +182,9 @@ namespace cab_management.Controllers
             return ApiResponse(true, "Customer user deleted successfully");
         }
 
-        // ------------------------------
+        // =============================
         // GET BY CUSTOMER ID
-        // ------------------------------
+        // =============================
         [HttpGet("customer/{customerId}")]
         public async Task<IActionResult> GetCustomerUsersByCustomerId(int customerId)
         {

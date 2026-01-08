@@ -23,7 +23,6 @@ namespace cab_management.Models
 
         public bool IsDeleted { get; set; } = false;
 
-        // ✅ Navigation Property (One Firm → Many FirmTerms)
-        public ICollection<FirmTerms> FirmTerms { get; set; }
+        public ICollection<FirmTerm> FirmTerms { get; set; }
     }
 }

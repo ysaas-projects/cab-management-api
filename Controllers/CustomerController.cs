@@ -21,9 +21,9 @@ namespace cab_management.Controllers
             _env = env;
         }
 
-        // ------------------------------
+        // =============================
         // GET ALL CUSTOMERS
-        // ------------------------------
+        // =============================
         [HttpGet]
         public async Task<IActionResult> GetCustomers()
         {
@@ -43,9 +43,9 @@ namespace cab_management.Controllers
         }
 
 
-        // ------------------------------
+        // =============================
         // GET CUSTOMER BY ID
-        // ------------------------------
+        // =============================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCustomerById(int id)
         {
@@ -63,9 +63,11 @@ namespace cab_management.Controllers
             {
                 return ApiResponse(false, "Something went wrong", error: ex.Message);
             }
-        }// ------------------------------
-         // CREATE CUSTOMER
-         // ------------------------------
+        }
+        
+        // =============================
+        // CREATE CUSTOMER
+        // =============================
         [HttpPost]
         public async Task<IActionResult> CreateCustomer([FromForm] CustomerCreateDto dto)
         {
@@ -74,14 +76,12 @@ namespace cab_management.Controllers
                 if (!ModelState.IsValid)
                     return ApiResponse(false, "Invalid data");
 
-                // Check if firm exists
                 bool firmExists = await _context.Firms
                     .AnyAsync(f => f.FirmId == dto.FirmId && !f.IsDeleted);
 
                 if (!firmExists)
                     return ApiResponse(false, "Invalid FirmId", error: "BadRequest");
 
-                // Duplicate check
                 bool duplicate = await _context.Customers.AnyAsync(c =>
                     c.FirmId == dto.FirmId &&
                     c.CustomerName.ToLower() == dto.CustomerName.ToLower() &&
@@ -96,15 +96,12 @@ namespace cab_management.Controllers
                     string folderPath = Path.Combine(_env.WebRootPath, "images", "customers");
                     Directory.CreateDirectory(folderPath);
 
-                    // Get extension
                     string extension = Path.GetExtension(dto.LogoImage.FileName);
 
-                    // Find next sequential number
                     int nextNumber = 1;
                     var existingFiles = Directory.GetFiles(folderPath, $"image*{extension}");
                     if (existingFiles.Length > 0)
                     {
-                        // Extract numbers from existing files
                         var numbers = existingFiles
                             .Select(f => Path.GetFileNameWithoutExtension(f))
                             .Where(f => f.StartsWith("image"))
@@ -149,9 +146,9 @@ namespace cab_management.Controllers
         }
 
 
-        // ------------------------------
+        // =============================
         // UPDATE CUSTOMER
-        // ------------------------------
+        // =============================
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCustomer(int id, [FromBody] CustomerUpdateDto model)
         {
@@ -166,7 +163,6 @@ namespace cab_management.Controllers
                 if (customer == null)
                     return ApiResponse(false, "Customer not found", error: "NotFound");
 
-                // Duplicate check (same firm + same customer name)
                 bool duplicate = await _context.Customers.AnyAsync(c =>
                     c.FirmId == customer.FirmId &&
                     c.CustomerName.ToLower() == model.CustomerName.ToLower() &&
@@ -176,7 +172,6 @@ namespace cab_management.Controllers
                 if (duplicate)
                     return ApiResponse(false, "Customer already exists for this firm", error: "Duplicate");
 
-                // Update fields
                 customer.CustomerName = model.CustomerName.Trim();
                 customer.Address = model.Address;
                 customer.GstNumber = model.GstNumber;
@@ -202,9 +197,9 @@ namespace cab_management.Controllers
         }
 
 
-        // ------------------------------
+        // ============================
         // DELETE CUSTOMER (SOFT DELETE)
-        // ------------------------------
+        // ============================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCustomer(int id)
         {

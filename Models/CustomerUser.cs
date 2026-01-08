@@ -31,6 +31,9 @@ namespace cab_management.Models
         public Customer Customer { get; set; }
     }
 
+    // ==============================
+    // CREATE CUSTOMERUSER DTO 
+    // ==============================
     public class CreateCustomerUserDto
     {
         [Required]
@@ -44,6 +47,9 @@ namespace cab_management.Models
         public bool IsActive { get; set; } = true;
     }
 
+    // ==============================
+    // UPDATE CUSTOMERUSER DTO 
+    // ==============================
     public class UpdateCustomerUserDto
     {
         [Required]

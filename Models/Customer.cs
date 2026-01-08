@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace cab_management.Models
 {
-    [Table("Customer")] // ⭐ FIXES INVALID OBJECT NAME ERROR
+    [Table("Customer")] 
     public class Customer
     {
         [Key]
@@ -30,11 +30,13 @@ namespace cab_management.Models
 
         public bool IsDeleted { get; set; } = false;
 
-        // Navigation property
         [ForeignKey("FirmId")]
         public Firms Firm { get; set; }
     }
 
+    // ==============================
+    // CRETAE CUSTOMER DTO 
+    // ==============================
     public class CustomerCreateDto
     {
         [Required]
@@ -50,6 +52,9 @@ namespace cab_management.Models
         public IFormFile LogoImage { get; set; } 
     }
 
+    // ==============================
+    // UPDATE CUSTOMER DTO 
+    // ==============================
     public class CustomerUpdateDto
     {
         

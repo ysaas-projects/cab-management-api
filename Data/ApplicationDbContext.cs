@@ -23,11 +23,10 @@ namespace cab_management.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<Firms> Firms { get; set; }
-        public DbSet<FirmTerms> FirmTerms { get; set; }
-
+        public DbSet<FirmTerm> FirmTerms { get; set; }
         public DbSet<Customer> Customers { get; set; }
-
         public DbSet<CustomerUser> CustomerUsers { get; set; }
+        //public DbSet<DuetySleep> DuetySleeps { get; set; }
 
         // =========================
         // MODEL CONFIGURATION

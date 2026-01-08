@@ -21,9 +21,9 @@ namespace cab_management.Controllers
         }
 
 
-        // ------------------------------
-        // GET ALL
-        // ------------------------------
+        // ==============================
+        // GET ALL FIRM TERMS
+        // ==============================
         [HttpGet]
         public async Task<IActionResult> GetFirmTerms()
         {
@@ -35,11 +35,11 @@ namespace cab_management.Controllers
             return ApiResponse(true, "Firm terms retrieved successfully", terms);
         }
 
-        // ------------------------------
-        // GET BY ID
-        // ------------------------------
+        // =============================
+        // GET BY FIRM TERMS ID
+        // =============================
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetFirmTermById(int id)
+        public async Task<IActionResult> GetFirmTermsById(int id)
         {
             var term = await _context.FirmTerms
                 .FirstOrDefaultAsync(ft => ft.FirmTermId == id && !ft.IsDeleted);
@@ -51,7 +51,7 @@ namespace cab_management.Controllers
         }
 
         // ==============================
-        // CREATE
+        // CREATE FIRM TERMS
         // ==============================
         [Authorize(AuthenticationSchemes =
             JwtBearerDefaults.AuthenticationScheme + "," +
@@ -64,14 +64,12 @@ namespace cab_management.Controllers
                 if (!ModelState.IsValid)
                     return ApiResponse(false, "Invalid data");
 
-                // Check firm exists
                 bool firmExists = await _context.Firms
                     .AnyAsync(f => f.FirmId == dto.FirmId && !f.IsDeleted);
 
                 if (!firmExists)
                     return ApiResponse(false, "Invalid FirmId", error: "BadRequest");
 
-                // Duplicate check
                 bool duplicate = await _context.FirmTerms.AnyAsync(ft =>
                     ft.FirmId == dto.FirmId &&
                     ft.Description.ToLower() == dto.Description.ToLower() &&
@@ -80,7 +78,7 @@ namespace cab_management.Controllers
                 if (duplicate)
                     return ApiResponse(false, "Firm term already exists for this firm", error: "Duplicate");
 
-                var firmTerm = new FirmTerms
+                var firmTerm = new FirmTerm
                 {
                     FirmId = dto.FirmId,
                     Description = dto.Description.Trim(),
@@ -107,10 +105,10 @@ namespace cab_management.Controllers
         }
 
         // ==============================
-        // UPDATE
+        // UPDATE FIRM TERMS
         // ==============================
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateFirmTerm(int id, [FromBody] UpdateFirmTermDto model)
+        public async Task<IActionResult> UpdateFirmTerm(int id, [FromBody] UpdateFirmTermDto dto)
         {
             try
             {
@@ -123,8 +121,7 @@ namespace cab_management.Controllers
                 if (term == null)
                     return ApiResponse(false, "Firm term not found", error: "NotFound");
 
-                // Correct duplicate check
-                string newDescription = model.Description.Trim();
+                string newDescription = dto.Description.Trim();
 
                 bool duplicate = await _context.FirmTerms
                     .AnyAsync(ft =>
@@ -137,7 +134,7 @@ namespace cab_management.Controllers
                     return ApiResponse(false, "Firm term already exists for this firm", error: "Duplicate");
 
                 term.Description = newDescription;
-                term.IsActive = model.IsActive;
+                term.IsActive = dto.IsActive;
                 term.UpdatedAt = DateTime.Now;
 
                 await _context.SaveChangesAsync();
@@ -181,9 +178,9 @@ namespace cab_management.Controllers
             return ApiResponse(true, "Firm term deleted successfully");
         }
 
-        // ------------------------------
+        // =============================
         // GET BY FIRM ID
-        // ------------------------------
+        // =============================
         [HttpGet("firm/{firmId}")]
         public async Task<IActionResult> GetFirmTermsByFirmId(int firmId)
         {
