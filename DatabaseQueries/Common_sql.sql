@@ -98,3 +98,17 @@ CREATE TABLE UserRoles
     -- Composite unique constraint
     CONSTRAINT UQ_User_Role UNIQUE (UserId, RoleId)
 );
+
+CREATE TABLE DriverDetails
+(
+    DriverDetailId INT IDENTITY PRIMARY KEY,
+    FirmId INT NULL,
+    UserId INT NULL,
+    DriverName VARCHAR(30) NOT NULL,
+    MobileNumber VARCHAR(13) NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0
+);
+
