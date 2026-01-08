@@ -1,6 +1,7 @@
-﻿CREATE TABLE CabPrizes
+﻿
+CREATE TABLE CabPrices
 (
-    CabPrizeId INT IDENTITY(1,1) PRIMARY KEY,
+    CabPriceId INT IDENTITY(1,1) PRIMARY KEY,
     FirmId INT NOT NULL,
     CabId INT NOT NULL,
     PriceRuleId INT NOT NULL,

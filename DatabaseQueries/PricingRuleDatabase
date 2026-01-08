@@ -2,9 +2,9 @@ CREATE DATABASE cab_management;
 
 use cab_management;
 
-CREATE TABLE PrizingRules
+CREATE TABLE PricingRules
 (
-    PrizingRuleId INT IDENTITY(1,1) PRIMARY KEY,
+    PricingRuleId INT IDENTITY(1,1) PRIMARY KEY,
     FirmId INT NOT NULL,
     RoleDetails NVARCHAR(500) NOT NULL,
     IsActive BIT NOT NULL DEFAULT 1,
