@@ -23,14 +23,13 @@ namespace cab_management.Data
         public DbSet<Organization> Organizations { get; set; }
         public DbSet<Firm> Firms { get; set; }
         public DbSet<FirmDetail> FirmDetails { get; set; }
-
+        public DbSet<FirmTerm>FirmTerms { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<PricingRule> PricingRules { get; set; }
         public DbSet<CabPrice> CabPrices { get; set; }
-        public DbSet<DutySlip> DutySlips { get; set; }
-
+  
 
 
         // =========================

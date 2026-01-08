@@ -12,13 +12,13 @@ CREATE TABLE Firms
     IsActive BIT DEFAULT 1,
     CreatedAt DATETIME DEFAULT GETDATE(),
     UpdatedAt DATETIME NULL,
-	IsDeleted BIT DEFAULT 0
+    IsDeleted BIT DEFAULT 0
 );
 
 CREATE TABLE Users (
     UserId INT IDENTITY(1,1) PRIMARY KEY,
     FirmId INT NULL,
-	FirmType NVARCHAR(20) NULL,		-- Admin, Mill, Company
+    FirmType NVARCHAR(20) NULL,		-- Admin, Mill, Company
     UserName VARCHAR(30) UNIQUE NOT NULL,
     PasswordHash VARCHAR(255) NOT NULL,  -- Store only hashed passwords (updated length)
     Email VARCHAR(255) NULL,             -- Increased length for modern emails
@@ -27,7 +27,7 @@ CREATE TABLE Users (
     MobileNumberConfirmed BIT DEFAULT 0,
     AccessFailedCount TINYINT DEFAULT 0,
     IsActive BIT DEFAULT 1,
-	LastLoginAt DATETIME NULL,
+    LastLoginAt DATETIME NULL,
     SecurityStamp UNIQUEIDENTIFIER DEFAULT NEWID(),  -- Forces logout on critical changes
     LockoutEnd DATETIME NULL,            -- Account lockout expiration
     LockoutEnabled BIT DEFAULT 1,        -- Enable account lockout
@@ -50,7 +50,7 @@ CREATE TABLE Users (
 CREATE TABLE UserSessions (
     SessionId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     UserId INT NOT NULL,
-	Jti NVARCHAR(450) NULL,
+    Jti NVARCHAR(450) NULL,
     AccessToken VARCHAR(MAX) NULL,           -- Can store JWT if needed (usually not recommended)
     RefreshToken VARCHAR(255) NOT NULL,      -- Hashed refresh token
     RefreshTokenExpiry DATETIME NOT NULL,
@@ -75,8 +75,8 @@ CREATE TABLE UserSessions (
 
 CREATE TABLE Roles
 (
-	RoleId SMALLINT IDENTITY PRIMARY KEY,
-	RoleName VARCHAR(50),
+    RoleId SMALLINT IDENTITY PRIMARY KEY,
+    RoleName VARCHAR(50),
     IsActive BIT DEFAULT 1,
     IsDeleted BIT DEFAULT 0
 );
@@ -99,49 +99,47 @@ CREATE TABLE UserRoles
     CONSTRAINT UQ_User_Role UNIQUE (UserId, RoleId)
 );
 
---------------ORGANIZATIONS--------------
-Create table Organizations(
-	OrganizationId int identity primary key ,
-	OrganizationName varchar(100),
-	LogoImagePath varchar(max),
-	Address varchar(100),
-	MobileNumber varchar(13),
-	GstNumber varchar(15),
-	IsActive bit  Default 1,
-	CreatedAt datetime Default 1,
-	UpdatedAt Datetime default null,
-	IsDeleted bit  Default 0
+
+--------------FirmTerms---------------------
+CREATE TABLE FirmTerms
+(
+FirmTermId INT IDENTITY PRIMARY KEY,
+FirmId INT NOT NULL,
+Description VARCHAR(200),
+IsActive BIT DEFAULT 1,
+CreatedAt DATETIME DEFAULT GETDATE(),
+UpdatedAt DATETIME NULL,
+IsDeleted BIT DEFAULT 0
+-- CONSTRAINT FK_FirmTerms_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
 );
 
---------------FIRMS--------------
-CREATE TABLE Firms
+------------------Customer-------------------
+CREATE TABLE Customer
 (
-    FirmId INT IDENTITY PRIMARY KEY,
-    FirmName VARCHAR(100) NOT NULL,
-    FirmCode VARCHAR(20) UNIQUE,
+    CustomerId INT IDENTITY PRIMARY KEY,
+    FirmId INT NOT NULL,
+    CustomerName VARCHAR(100),
+    LogoImagePath VARCHAR(max),
+    Address VARCHAR(max),
+    GstNumber VARCHAR(20),
     IsActive BIT DEFAULT 1,
     CreatedAt DATETIME DEFAULT GETDATE(),
     UpdatedAt DATETIME NULL,
-	IsDeleted BIT DEFAULT 0
+    IsDeleted BIT DEFAULT 0
+    --CONSTRAINT FK_Customer_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
 );
 
---------------FIRM DETAILS--------------
-CREATE TABLE FirmDetails
+-----------------CustomerUsers------------------------
+CREATE TABLE CustomerUsers
 (
-    FirmDetailsId INT IDENTITY PRIMARY KEY,
-    FirmId INT NOT NULL,  
-    Address VARCHAR(255),--null
-    ContactNumber VARCHAR(15),--null
-    ContactPerson VARCHAR(100),--null
-    LogoImagePath VARCHAR(255),--null
-    GstNumber VARCHAR(50),--null
-    IsActive BIT DEFAULT 1,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    UpdatedAt DATETIME NULL,
-    IsDeleted BIT DEFAULT 0,
-
-     -- Foreign key constraints
-        --CONSTRAINT FK_FirmDetails_Firms
-        --FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
-);
+CustomerUserId INT IDENTITY PRIMARY KEY,
+CustomerId INT NOT NULL,
+UserName VARCHAR(100),
+MobileNumber VARCHAR(20) NULL, --Standardized length     
+IsActive BIT DEFAULT 1,
+CreatedAt DATETIME DEFAULT GETDATE(),
+UpdatedAt DATETIME NULL,
+IsDeleted BIT DEFAULT 0
+--CONSTRAINT FK_CustomerUsers_Customer FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId)
+)
 
