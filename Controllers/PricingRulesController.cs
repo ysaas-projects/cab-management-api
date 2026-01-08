@@ -23,8 +23,11 @@ namespace cab_management.Controllers
             _context = context;
             _logger = logger;
         }
-
-        // 🔹 GET ALL PRIZING RULES
+        
+        
+        //=========================================
+        //  GET ALL PRICING RULES
+        //=========================================
         [HttpGet]
         public async Task<IActionResult> GetPricingRules()
         {
@@ -52,8 +55,10 @@ namespace cab_management.Controllers
                 return ApiResponse(false, "Error retrieving pricing rules", error: ex.Message);
             }
         }
-
-        // 🔹 GET BY ID
+       
+        //=========================================
+        //  GET BY ID PRICING RULES
+        //=========================================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPricingRule(int id)
         {
@@ -84,7 +89,10 @@ namespace cab_management.Controllers
             }
         }
 
-        // 🔹 CREATE
+       
+        //=========================================
+        //  CREATE PRICING RULES
+        // =========================================
         [HttpPost]
         public async Task<IActionResult> CreatePricingRule([FromBody] CreatePricingRuleDto dto)
         {
@@ -104,7 +112,7 @@ namespace cab_management.Controllers
                     FirmId = dto.FirmId,              // ✅ FirmId comes from request
                     RoleDetails = dto.RoleDetails,
                     IsActive = dto.IsActive,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                     IsDeleted = false
                 };
 
@@ -118,8 +126,10 @@ namespace cab_management.Controllers
                 return ApiResponse(false, "Error creating pricing rule", error: ex.Message);
             }
         }
-
-        // 🔹 UPDATE
+        
+        //=========================================
+        // UPDATE PRICING RULES
+        //=========================================
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePricingRule(int id, [FromBody] UpdatePricingRuleDto dto)
         {
@@ -136,7 +146,7 @@ namespace cab_management.Controllers
 
                 rule.RoleDetails = dto.RoleDetails ?? rule.RoleDetails;
                 rule.IsActive = dto.IsActive ?? rule.IsActive;
-                rule.UpdatedAt = DateTime.UtcNow;
+                rule.UpdatedAt = DateTime.Now;
 
                 await _context.SaveChangesAsync();
 
@@ -147,8 +157,10 @@ namespace cab_management.Controllers
                 return ApiResponse(false, "Error updating pricing rule", error: ex.Message);
             }
         }
-
-        // 🔹 DELETE (SOFT DELETE)
+       
+        //=========================================
+        //  DELETE PRICING RULES
+        //=========================================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePricingRule(int id)
         {
@@ -163,7 +175,7 @@ namespace cab_management.Controllers
 
                 rule.IsDeleted = true;
                 rule.IsActive = false;
-                rule.UpdatedAt = DateTime.UtcNow;
+                rule.UpdatedAt = DateTime.Now;
 
                 await _context.SaveChangesAsync();
 

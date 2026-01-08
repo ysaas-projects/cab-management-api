@@ -17,8 +17,10 @@ namespace cab_management.Controllers
             _context = context;
             _logger = logger;
         }
-
-        // 🔹 GET ALL CAB PRICES
+        
+        //=========================================
+        //  GET ALL CAB PRICES
+        //=========================================
         [HttpGet]
         public async Task<IActionResult> GetCabPrices()
         {
@@ -45,8 +47,10 @@ namespace cab_management.Controllers
                 return ApiResponse(false, "Error retrieving cab prices", error: ex.Message);
             }
         }
-
-        // 🔹 GET BY ID
+        
+        //=========================================
+        //  GET BY ID CABPRICES
+        //=========================================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCabPrice(int id)
         {
@@ -76,8 +80,10 @@ namespace cab_management.Controllers
                 return ApiResponse(false, "Error retrieving cab price", error: ex.Message);
             }
         }
-
-        // 🔹 CREATE
+       
+        //=========================================
+        //  CREATE CABPRICES
+        //=========================================
         [HttpPost]
         public async Task<IActionResult> CreateCabPrice([FromBody] CreateCabPriceDto dto)
         {
@@ -107,8 +113,10 @@ namespace cab_management.Controllers
                 return ApiResponse(false, "Error creating cab price", error: ex.Message);
             }
         }
-
-        // 🔹 UPDATE
+       
+        //=========================================
+        // UPDATE CABPRICES
+        //=========================================
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCabPrice(int id, [FromBody] UpdateCabPriceDto dto)
         {
@@ -124,7 +132,7 @@ namespace cab_management.Controllers
                     cabprice.PriceRuleId = dto.PriceRuleId ?? cabprice.PriceRuleId;
                     cabprice.Price = dto.Price ?? cabprice.Price;
                     cabprice.IsActive = dto.IsActive ?? cabprice.IsActive;
-                    cabprice.UpdatedAt = DateTime.UtcNow;
+                    cabprice.UpdatedAt = DateTime.Now;
 
                     await _context.SaveChangesAsync();
                     return ApiResponse(true, "cab price updated successfully");
@@ -139,8 +147,10 @@ namespace cab_management.Controllers
             }
 
         }
-
-        // 🔹 DELETE (SOFT DELETE)
+       
+        //=========================================
+        //  DELETE CABPRICES
+        //=========================================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCabPrice(int id)
         {
@@ -153,7 +163,7 @@ namespace cab_management.Controllers
                     return ApiResponse(false, "cab price not found", error: "not found");
                     cabprice.IsDeleted = true;
                     cabprice.IsActive = false;
-                    cabprice.UpdatedAt = DateTime.UtcNow;
+                    cabprice.UpdatedAt = DateTime.Now;
                     await _context.SaveChangesAsync();
                     return ApiResponse(true, "cab price deleted successfully");
                 
