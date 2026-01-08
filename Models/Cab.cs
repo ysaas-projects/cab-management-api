@@ -2,8 +2,7 @@
 
 namespace cab_management.Models
 {
-    
-        public  class Cab
+        public class Cab
         {
             [Key]
             public int CabId { get; set; }
@@ -11,14 +10,9 @@ namespace cab_management.Models
            [Required]
             public int? OrganizationId { get; set; }
 
-
             public string? CabType { get; set; }
 
-
-
             public bool? IsActive { get; set; } = true;
-
-
 
             public bool? IsDeleted { get; set; } = false;
 
@@ -26,21 +20,29 @@ namespace cab_management.Models
 
             public DateTime? UpdetedAt { get; set; }
         }
+
+
+        // =================
+        // CREATE CAB DTO
+        // =================
         public class CreateCabDto
         {
             [Required]
             [Range(1, int.MaxValue, ErrorMessage = "OrganizationId must be greater than 0.")]
-            //[SwaggerSchema(Description ="OrganizationId is Unique ", Nullable =false)]
             public int OrganizationId { get; set; }
-
-            [Required(ErrorMessage ="IsActive Field is Requried")]
-            public bool? IsActive { get; set; }
 
             [Required(ErrorMessage = "CabType is Requried")]
             [StringLength(50, ErrorMessage = "CabType must be in string and less than 50 charactor")]
             public string? CabType { get; set; }
 
-        }
+            [Required(ErrorMessage = "IsActive Field is Requried")]
+            public bool? IsActive { get; set; }
+
+    }
+        
+        // =================
+        // UPDATE CAB DTO
+        // =================
         public class UpdateCabDto
         {
             [Key]
@@ -55,18 +57,17 @@ namespace cab_management.Models
             [StringLength(50, ErrorMessage = "CabType must be in string and less than 50 charactor")]
             public string? CabType { get; set; }
 
-
-            [Required(ErrorMessage="IsActive Field is Requried")]
-            public bool? IsActive { get; set; }
-
-
             [Required]
-            public DateTime? UpdatedAt { get; set; }
+            public DateTime? UpdatedAt { get; set; } = DateTime.Now;
 
             [Required(ErrorMessage ="IsDeleted Field is Requried")]
             public bool? IsDeleted { get; set; } = false;
-            
-           
-        }
+
+
+            [Required(ErrorMessage = "IsActive Field is Requried")]
+            public bool? IsActive { get; set; }
+
+
+    }
     
 }

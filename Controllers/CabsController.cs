@@ -10,50 +10,52 @@ namespace cab_management.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    
-        public class CabsController : BaseApiController
+
+    public class CabsController : BaseApiController
+    {
+
+        ApplicationDbContext _context;
+        public CabsController(ApplicationDbContext context)
         {
+            _context = context;
+        }
 
-            ApplicationDbContext _context;
-            public CabsController(ApplicationDbContext context)
+        // ====================
+        // GET ALL CABS
+        // ====================
+        [HttpGet]
+        public async Task<IActionResult> GetAllCabs()
+        {
+            try
             {
-                _context = context;
+
+                var cabs = await _context.Cabs
+                .Where(c => c.IsDeleted != true)
+                .ToListAsync();
+
+                return ApiResponse(
+                    success: true,
+                    message: "Cabs Fetched Successfully",
+                    data: cabs
+                    );
             }
-
-
-            [HttpGet]
-            [Route("")]
-            public async Task<IActionResult> FetchCabs()
+            catch (Exception ex)
             {
-                try
-                {
-
-                    var cabs = await _context.Cabs
-                    .Where(c => c.IsDeleted != true)
-                    .ToListAsync();
-
-                    return ApiResponse(
-                        success: true,
-                        message:"Cabs Fetched Succefully",
-                        data:cabs
-                        );
-                }
-                catch (Exception ex)
-                {
-                    return ApiResponse(
-                        success:false,
-                        message:"Something Went wrong",
-                        error:ex.Message,
-                        statusCode:500
-                        );
-                }
+                return ApiResponse(
+                    success: false,
+                    message: "Something Went Wrong",
+                    error: ex.Message,
+                    statusCode: 500
+                    );
             }
+        }
 
-
-            [HttpGet]
-            [Route("{id}")]
-            public async Task<IActionResult> GetById(int id)
-            {
+        // ====================
+        // GET CAB BY ID
+        // ====================
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetCabById(int id)
+        {
                 try
                 {
                     var cab = _context.Cabs.
@@ -86,11 +88,13 @@ namespace cab_management.Controllers
                         statusCode:500
                         );
                 }
-            }
+        }
 
+            // ===================
+            // CREATE CAB
+            // ===================
             [HttpPost]
-            [Route("create")]
-            public async Task<IActionResult> CreateData([FromForm] CreateCabDto cab)
+            public async Task<IActionResult> CreateCab([FromForm] CreateCabDto dto)
             {
                 try
                 {
@@ -103,28 +107,28 @@ namespace cab_management.Controllers
 
                     return ApiResponse(
                         success:false,
-                        message:"validation failed",
+                        message:"Validation Failed",
                         errors:errorlst,
                         statusCode:400
                         );
                     }
 
-                    Cab cabdata = new Cab()
+                    Cab cab = new Cab()
                     {
-                        OrganizationId = cab.OrganizationId,
-                        CabType = cab.CabType,
+                        OrganizationId = dto.OrganizationId,
+                        CabType = dto.CabType,
                         IsDeleted = false,
                         CreatedAt = DateTime.Now,
-                        IsActive = cab.IsActive
+                        IsActive = dto.IsActive
                     };
 
-                    await _context.Cabs.AddAsync(cabdata);
+                    await _context.Cabs.AddAsync(cab);
                     _context.SaveChanges();
 
                     return ApiResponse(
                     success: true,
-                    message: "Record Added SuccessFully",
-                    data:cabdata
+                    message: "Record Added Successfully",
+                    data:cab
                     );
                 }
                 catch (Exception ex)
@@ -137,17 +141,19 @@ namespace cab_management.Controllers
                         );
                 }
             }
-
-            [HttpPut]
-            [Route("update{id}")]
-            public async Task<IActionResult> UpdateData(int id, [FromForm]UpdateCabDto cab)
+            
+            // =====================
+            // UPDATE CAB
+            // =====================
+            [HttpPut("{id}")]
+            public async Task<IActionResult> UpdateCab(int id, [FromForm]UpdateCabDto dto)
             {
 
                 try
                 {
-                    var cabdata = await _context.Cabs.
+                    var cab = await _context.Cabs.
                     FindAsync(id);
-                    if(cabdata!=null)
+                    if(cab!=null)
                     {
                         if (!ModelState.IsValid && !ModelState.IsNullOrEmpty())
                         {
@@ -164,11 +170,11 @@ namespace cab_management.Controllers
                         }
                         else
                         {
-                            cabdata.OrganizationId = cab.OrganizationId;
-                            cabdata.CabType = cab.CabType;
-                            cabdata.UpdetedAt = DateTime.Now;
-                            cabdata.IsDeleted = cab.IsDeleted;
-                            cabdata.IsActive = cab.IsActive;
+                            cab.OrganizationId = dto.OrganizationId;
+                            cab.CabType = dto.CabType;
+                            cab.UpdetedAt = DateTime.Now;
+                            cab.IsDeleted = dto.IsDeleted;
+                            cab.IsActive = dto.IsActive;
                             _context.SaveChanges();
                             return ApiResponse(
                                 success: true,
@@ -198,10 +204,12 @@ namespace cab_management.Controllers
                 }
             }
 
-
-            [HttpDelete]
-            [Route("delete/{id}")]
-            public async Task<IActionResult> DeleteData(int id)
+            
+            // ======================
+            // DELETE (SOFT DELETE)
+            // ======================
+            [HttpDelete("{id}")]
+            public async Task<IActionResult> DeleteCab(int id)
             {
                 try
                 {

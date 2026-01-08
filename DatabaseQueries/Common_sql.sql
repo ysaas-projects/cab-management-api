@@ -98,3 +98,15 @@ CREATE TABLE UserRoles
     -- Composite unique constraint
     CONSTRAINT UQ_User_Role UNIQUE (UserId, RoleId)
 );
+
+----------- CABS --------------
+CREATE TABLE Cabs(
+CabId INT IDENTITY PRIMARY KEY,
+OrganizationId INT, 
+CAbType VARCHAR(50),
+IsActive BIT,
+IsDeleted BIT,
+CreatedAt DATETIME,
+UpdatedAt DATETIME
+--  CONSTRAINT FK_Cabs_Organizations FOREIGN KEY (OrganizationId)  REFERENCES Organizations(OrganizationId ),
+);
