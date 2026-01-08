@@ -98,3 +98,13 @@ CREATE TABLE UserRoles
     -- Composite unique constraint
     CONSTRAINT UQ_User_Role UNIQUE (UserId, RoleId)
 );
+
+Create Table OrganizationTerms(
+OrganizationtermId int identity Primary key,
+OrganizationId int,
+Description text,
+IsActive bit,
+CreatedAt datetime ,
+UpdatedAt datetime ,
+IsDeleted bit  
+);
