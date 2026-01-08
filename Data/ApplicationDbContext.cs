@@ -1,5 +1,6 @@
 ﻿using cab_management.Controllers;
 using cab_management.Models;
+using DriverDetails.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Reflection;
@@ -29,8 +30,9 @@ namespace cab_management.Data
         public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<PricingRule> PricingRules { get; set; }
         public DbSet<CabPrice> CabPrices { get; set; }
-  
-
+        public DbSet<Cab> Cabs { get; set; }
+        public DbSet<Customer>Customers { get; set; }
+        public DbSet<DriverDetail> DriverDetails { get; set; }
 
         // =========================
         // MODEL CONFIGURATION

@@ -99,21 +99,18 @@ CREATE TABLE UserRoles
     CONSTRAINT UQ_User_Role UNIQUE (UserId, RoleId)
 );
 
-
---------------FirmTerms---------------------
-CREATE TABLE FirmTerms
-(
-FirmTermId INT IDENTITY PRIMARY KEY,
-FirmId INT NOT NULL,
-Description VARCHAR(200),
-IsActive BIT DEFAULT 1,
-CreatedAt DATETIME DEFAULT GETDATE(),
-UpdatedAt DATETIME NULL,
-IsDeleted BIT DEFAULT 0
--- CONSTRAINT FK_FirmTerms_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
+----------- CABS --------------
+CREATE TABLE Cabs(
+CabId INT IDENTITY PRIMARY KEY,
+OrganizationId INT, 
+CabType VARCHAR(50),
+IsActive BIT,
+IsDeleted BIT,
+CreatedAt DATETIME,
+UpdatedAt DATETIME
+--  CONSTRAINT FK_Cabs_Organizations FOREIGN KEY (OrganizationId)  REFERENCES Organizations(OrganizationId ),
 );
-
-------------------Customer-------------------
+------------------CUSTOMER -------------------
 CREATE TABLE Customer
 (
     CustomerId INT IDENTITY PRIMARY KEY,
@@ -129,17 +126,16 @@ CREATE TABLE Customer
     --CONSTRAINT FK_Customer_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
 );
 
------------------CustomerUsers------------------------
-CREATE TABLE CustomerUsers
+------------------DRIVER DETAILS-------------------
+CREATE TABLE DriverDetails
 (
-CustomerUserId INT IDENTITY PRIMARY KEY,
-CustomerId INT NOT NULL,
-UserName VARCHAR(100),
-MobileNumber VARCHAR(20) NULL, --Standardized length     
-IsActive BIT DEFAULT 1,
-CreatedAt DATETIME DEFAULT GETDATE(),
-UpdatedAt DATETIME NULL,
-IsDeleted BIT DEFAULT 0
---CONSTRAINT FK_CustomerUsers_Customer FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId)
-)
-
+    DriverDetailId INT IDENTITY PRIMARY KEY,
+    FirmId INT NULL,
+    UserId INT NULL,
+    DriverName VARCHAR(30) NOT NULL,
+    MobileNumber VARCHAR(13) NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0
+);
