@@ -160,7 +160,7 @@ namespace cab_management.Controllers
 
         [HttpDelete]
         [Route("{id}")]
-        public async Task<IActionResult> DeleteData(int id)
+        public async Task<IActionResult> DeleteDriverDetails(int id)
         {
             try
             {
