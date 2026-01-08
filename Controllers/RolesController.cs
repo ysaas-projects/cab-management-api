@@ -23,7 +23,7 @@ namespace cab_management.Controllers
         }
 
         // =========================================
-        // 1️⃣ GET ALL ROLES
+        //  GET ALL ROLES
         // =========================================
         [HttpGet]
         public async Task<IActionResult> GetRoles()
@@ -43,7 +43,7 @@ namespace cab_management.Controllers
         }
 
         // =========================================
-        // 2️⃣ GET ROLE BY ID
+        //  GET ROLE BY ID
         // =========================================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetRoleById(short id)
@@ -65,7 +65,7 @@ namespace cab_management.Controllers
         }
 
         // =========================================
-        // 3️⃣ CREATE ROLE
+        //  CREATE ROLE
         // =========================================
         [HttpPost]
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleDTO dto)
@@ -94,7 +94,7 @@ namespace cab_management.Controllers
         }
 
         // =========================================
-        // 4️⃣ UPDATE ROLE
+        //  UPDATE ROLE
         // =========================================
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateRole(short id, [FromBody] UpdateRoleDTO dto)
@@ -125,7 +125,7 @@ namespace cab_management.Controllers
         }
 
         // =========================================
-        // 5️⃣ DELETE ROLE (SOFT DELETE)
+        //  DELETE ROLE (SOFT DELETE)
         // =========================================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRole(short id)
