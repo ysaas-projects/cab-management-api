@@ -29,7 +29,7 @@ public partial class DriverDetail
 }
 
 // =====================================================
-// CREATE DRIVERDETAILS DTO
+// CREATE DRIVER DETAILS DTO
 // =====================================================
 public class AddDriverDetailDTO
 {
@@ -53,7 +53,7 @@ public class AddDriverDetailDTO
 }
 
 // =====================================================
-// UPDATE DRIVERDETAILS DTO
+// UPDATE DRIVER DETAILS DTO
 // =====================================================
 public class UpdateDriverDetailDTO
 {

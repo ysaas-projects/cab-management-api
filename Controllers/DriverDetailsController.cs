@@ -20,7 +20,7 @@ namespace cab_management.Controllers
         }
 
         // ------------------------------
-        // GET ALL DRIVERDETAILS
+        // GET ALL DRIVER DETAILS
         // ------------------------------
 
         [HttpGet]
@@ -41,7 +41,7 @@ namespace cab_management.Controllers
         }
 
         // ------------------------------
-        //GET DRIVERDETAILS BY ID
+        //GET DRIVER DETAILS BY ID
         // ------------------------------
 
         [HttpGet]
@@ -67,7 +67,7 @@ namespace cab_management.Controllers
         }
 
         // ------------------------------
-        // CREATE DRIVERDETAILS
+        // CREATE DRIVER DETAILS
         // ------------------------------
 
         [HttpPost]
@@ -106,7 +106,7 @@ namespace cab_management.Controllers
         }
 
         // ------------------------------
-        // UPDATE DRIVERDETAILS
+        // UPDATE DRIVER DETAILS
         // ------------------------------
 
         [HttpPut]
@@ -155,7 +155,7 @@ namespace cab_management.Controllers
         }
 
         // ------------------------------
-        // DELETE DRIVERDETAILS
+        // DELETE DRIVER DETAILS
         // ------------------------------
 
         [HttpDelete]
