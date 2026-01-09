@@ -24,6 +24,7 @@ namespace cab_management.Data
         public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<Organization> organizations { get; set; }
         public DbSet<DutyExpenses> dutyExpenses { get; set; }
+        public DbSet<DutyLocations> DutyLocations { get; set; }
 
         // =========================
         // MODEL CONFIGURATION
