@@ -30,7 +30,7 @@ namespace cab_management.Controllers
                                    .Where(o=>o.IsDeleted.Equals(false))
                                    .ToListAsync();
 
-                return ApiResponse(true,"Data Fetched Successfully",terms);
+                return ApiResponse(true,"OrganizationTerm Fetched Successfully",terms);
             }
             catch (Exception ex)
             {
@@ -50,10 +50,10 @@ namespace cab_management.Controllers
 
                 if (term == null)
                 {
-                    return ApiResponse(false, "Record Not Found", 400);
+                    return ApiResponse(false, "OrganizationTerm Not Found", 400);
                 }
 
-                return ApiResponse(true,"Record Fetched Successfully",term);
+                return ApiResponse(true, "OrganizationTerm Fetched Successfully", term);
             }
             catch (Exception ex)
             {
@@ -65,13 +65,13 @@ namespace cab_management.Controllers
         // CREATE ORGANIZATIONTERM
         // ------------------------------
         [HttpPost]
-        public async Task<IActionResult> CreateOrganizationTerm([FromBody] CreateTermDto dto)
+        public async Task<IActionResult> CreateOrganizationTerm([FromForm] CreateTermDto dto)
         {
             try
             {
                 if (!ModelState.IsValid)
                 {
-                    return ApiResponse(false, "Record Not Found", 400);
+                    return ApiResponse(false, "OrganizationTerm Not Found", 400);
                     
                    
                }
@@ -90,7 +90,7 @@ namespace cab_management.Controllers
                 await _context.SaveChangesAsync();
 
 
-                return ApiResponse(true, "Record Added Successfully", term);
+                return ApiResponse(true, "OrganizationTerm Added Successfully", term);
             }
             catch (Exception ex)
             {
@@ -103,7 +103,7 @@ namespace cab_management.Controllers
         // UPDATE ORGANIZATIONTERM BY ID
         // ------------------------------
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateOrganizationTerm(int id, [FromBody] UpdateTermDto dto)
+        public async Task<IActionResult> UpdateOrganizationTerm(int id, [FromForm] UpdateTermDto dto)
         {
             try
             {
@@ -118,7 +118,7 @@ namespace cab_management.Controllers
 
                 if (term == null)
                 {
-                    return ApiResponse(false, "Record Not Found", 400);
+                    return ApiResponse(false, "OrganizationTerm Not Found", 400);
 
                 }
                 else
@@ -134,7 +134,7 @@ namespace cab_management.Controllers
 
                     return ApiResponse(
                         success: true,
-                        message: "Record  Updated Successfully"
+                        message: "OrganizationTerm  Updated Successfully"
                         );
                 }
 
@@ -170,7 +170,7 @@ namespace cab_management.Controllers
                 organizationTerm.IsDeleted = true;
                 await _context.SaveChangesAsync();
 
-                return ApiResponse(true, "Record Delete Successfully");
+                return ApiResponse(true, "OrganizationTerm Delete Successfully");
             }
             catch (Exception ex)
             {
