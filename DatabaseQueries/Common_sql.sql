@@ -110,3 +110,18 @@ CreatedAt DATETIME,
 UpdatedAt DATETIME
 --  CONSTRAINT FK_Cabs_Organizations FOREIGN KEY (OrganizationId)  REFERENCES Organizations(OrganizationId ),
 );
+
+----------- CabPrices --------------
+CREATE TABLE CabPrices(
+ CabPriceId INT IDENTITY PRIMARY KEY,
+ FirmId INT,
+ PriceRuleId INT,
+ Price FLOAT,
+ IsActive BIT,
+ CreatedAt DATETIME,
+ UpdatedAt DATETIME,
+ IsDeleted BIT
+
+ -- CONSTRAINT FK_CabPrices_Firms FOREIGN KEY (FirmId)  REFERENCES Firms(FirmId),
+ -- CONSTRAINT FK_CabPrices_PriceRules FOREIGN KEY (PriceRuleId)  REFERENCES PriceRules(PriceRuleId),
+ );
