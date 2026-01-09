@@ -143,3 +143,37 @@ IsDeleted BIT DEFAULT 0
 --CONSTRAINT FK_CustomerUsers_Customer FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId)
 )
 
+
+--------------------DutySlip-----------------------
+CREATE TABLE DutySlips
+(
+    DutySlipId INT IDENTITY PRIMARY KEY,
+    BookedDate DATE NOT NULL,
+    BookedBy INT NOT NULL,          
+    FirmId INT NOT NULL,
+    CustomerId INT NOT NULL,
+    ReportingDateTime DATETIME NULL,
+    ReportingAddress VARCHAR(MAX),
+    ReportingGeolocation VARCHAR(100),  
+    RequestedCab VARCHAR(100),
+    SentCab VARCHAR(100),
+    CabNumber VARCHAR(20),
+    DriverId INT NULL,
+    PaymentMode VARCHAR(50),
+    StartKms FLOAT,
+    StartKmsImagePath VARCHAR(MAX),
+    StartDateTime DATETIME,
+    CloseKms FLOAT,
+    CloseKmsImagePath VARCHAR(MAX),
+	CloseDateTime DATETIME,
+	TotalKms FLOAT,
+	TotalTimeInMin INT,
+	NextDayInstruction VARCHAR(250),
+	Destination VARCHAR(200),
+	Status VARCHAR(50),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT DEFAULT 0
+    -- CONSTRAINT FK_DuetySleeps_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId),
+    -- CONSTRAINT FK_DuetySleeps_Customers FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId)
+);
