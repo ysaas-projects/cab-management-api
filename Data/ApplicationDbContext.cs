@@ -25,6 +25,9 @@ namespace cab_management.Data
         public DbSet<PricingRule> PricingRules { get; set; }
         public DbSet<CabPrice> CabPrices { get; set; }
         public DbSet<DutySlip> DutySlips { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<InvoiceItem> InvoiceItems { get; set; }
+
 
 
 

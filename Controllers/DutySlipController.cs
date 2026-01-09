@@ -19,8 +19,10 @@ namespace cab_management.Controllers
             _context = context;
             _logger = logger;
         }
-
-        // 🔹 CREATE DUTY SLIP
+       
+        //=========================================
+        //  CREATE DUTY SLIP
+        //=========================================
         [HttpPost]
         public async Task<IActionResult> CreateDutySlip([FromBody] CreateDutySlipDto dto)
         {
@@ -47,7 +49,7 @@ namespace cab_management.Controllers
                     RequestedCab = dto.RequestedCab,
                     Destination = dto.Destination,
 
-                    // 🔒 FORCE DEFAULT VALUES
+                    //  FORCE DEFAULT VALUES
                     Status = "Booked",
                     CreatedAt = DateTime.UtcNow,
                     IsDeleted = false
@@ -69,8 +71,10 @@ namespace cab_management.Controllers
                 return ApiResponse(false, "Error creating duty slip", error: ex.Message);
             }
         }
-
+        
+        //=========================================
         // ================= ASSIGN DRIVER =================
+        //=========================================
         [HttpPut("{id}/assign-driver")]
         public async Task<IActionResult> AssignDriver(int id, [FromBody] UpdateAssignDriverDto dto)
         {
@@ -89,7 +93,7 @@ namespace cab_management.Controllers
 
             await _context.SaveChangesAsync();
 
-            // ✅ RETURN UPDATED DATA
+            //  RETURN UPDATED DATA
             var response = new DutySlipResponseDto
             {
                 DutySlipId = dutySlip.DutySlipId,
@@ -105,7 +109,10 @@ namespace cab_management.Controllers
 
             return ApiResponse(true, "Driver updated successfully", response);
         }
-        // ================= START JOURNEY =================
+        
+        //=========================================
+        // ================= START JOURNEY ========
+        //=========================================
         [HttpPut("{id}/start-journey")]
         public async Task<IActionResult> StartJourney(int id, [FromBody] UpdateStartJourneyDto dto)
         {
@@ -138,8 +145,10 @@ namespace cab_management.Controllers
 
 
         }
-
-        // ================= END JOURNEY =================
+        
+        //=========================================
+        // ================= END JOURNEY ==========
+        //=========================================
         [HttpPut("{id}/end-journey")]
         public async Task<IActionResult> EndJourney(int id, [FromBody] UpdateEndJourneyDto dto)
         {
@@ -169,8 +178,10 @@ namespace cab_management.Controllers
             return ApiResponse(true, "Journey ended successfully",response);
              
         }
-
-        // ================= INSTRUCTION =================
+       
+        //=========================================
+        // ================= INSTRUCTION ==========
+        //=========================================
         [HttpPut("{id}/instruction")]
         public async Task<IActionResult> UpdateInstruction(int id, [FromBody]UpdateInstructionDto dto)
         {
@@ -191,7 +202,10 @@ namespace cab_management.Controllers
             return ApiResponse(false, "Instruction Updated sucessfully",response);
             
         }
-        // ================= Billing =================
+        
+        //=========================================
+        // ================= Billing ==============
+        //=========================================
         [HttpPut("{id}/billing")]
 
         public async Task<IActionResult> Billing(int id,[FromBody] UpdateBillingDto dto)
@@ -216,6 +230,90 @@ namespace cab_management.Controllers
             };
             return ApiResponse(true, "Billing updated successfully", response);
         }
+
+
+
+
+
+
+
+        //=========================================
+        // ================= GET ALL DATA BY ID ====
+        //=========================================
+
+        private async Task<List<DutySlipResponseDto>> GetDutySlipsInternal(
+        int? firmId = null,
+        int? driverId = null,
+        int? customerId = null,
+        int? dutySlipId = null)
+        {
+            IQueryable<DutySlip> query = _context.DutySlips
+                .Where(x => !x.IsDeleted);
+
+            if (firmId.HasValue)
+                query = query.Where(x => x.FirmId == firmId.Value);
+
+            else if (driverId.HasValue)
+                query = query.Where(x => x.DriverId == driverId.Value);
+
+            else if (customerId.HasValue)
+                query = query.Where(x => x.CustomerId == customerId.Value);
+
+            else if (dutySlipId.HasValue)
+                query = query.Where(x => x.DutySlipId == dutySlipId.Value);
+
+            return await query
+                .Select(x => new DutySlipResponseDto
+                {
+                    DutySlipId = x.DutySlipId,
+                    DriverId = x.DriverId,
+                    ReportingAddress = x.ReportingAddress,
+                    ReportingDateTime = x.ReportingDateTime,
+                    SentCab = x.SentCab,
+                    CabNumber = x.CabNumber,
+                    ReportingGeoLocation = x.ReportingGeoLocation,
+                    StartKms = x.StartKms,
+                    StartKmsImagePath = x.StartKmsImagePath,
+                    StartDateTime = x.StartDateTime,
+                    CloseKms = x.CloseKms,
+                    CloseKmsImagePath = x.CloseKmsImagePath,
+                    CloseDateTime = x.CloseDateTime,
+                    TotalKms = x.TotalKms,
+                    TotalTimeInMin = x.TotalTimeInMin,
+                    NextDayInstruction = x.NextDayInstruction,
+                    PaymentMode = x.PaymentMode,
+                    Status = x.Status,
+                    UpdatedAt = x.UpdatedAt
+                })
+                .ToListAsync();
+        }
+
+        [HttpGet("get-all-data-by-firmid/{firmId}")]
+        public async Task<IActionResult> GetAllByFirmId(int firmId)
+        {
+            var result = await GetDutySlipsInternal(firmId: firmId);
+            return ApiResponse(true, "Data fetched by FirmId", result);
+        }
+
+        [HttpGet("get-all-data-by-driverid/{driverId}")]
+        public async Task<IActionResult> GetAllByDriverId(int driverId)
+        {
+            var result = await GetDutySlipsInternal(driverId: driverId);
+            return ApiResponse(true, "Data fetched by DriverId", result);
+        }
+        [HttpGet("get-all-data-by-customerid/{customerId}")]
+        public async Task<IActionResult> GetAllByCustomerId(int customerId)
+        {
+            var result = await GetDutySlipsInternal(customerId: customerId);
+            return ApiResponse(true, "Data fetched by CustomerId", result);
+        }
+        [HttpGet("get-all-data-by-dutyslipid/{dutySlipId}")]
+        public async Task<IActionResult> GetByDutySlipId(int dutySlipId)
+        {
+            var result = await GetDutySlipsInternal(dutySlipId: dutySlipId);
+            return ApiResponse(true, "Data fetched by DutySlipId", result);
+        }
+
 
 
 
