@@ -80,6 +80,9 @@ CREATE TABLE Roles
     IsActive BIT DEFAULT 1,
     IsDeleted BIT DEFAULT 0
 );
+
+--=================Organizations==================
+
 CREATE TABLE Organizations
 (
     OrganizationId INT IDENTITY PRIMARY KEY,
@@ -110,4 +113,20 @@ CREATE TABLE UserRoles
         
     -- Composite unique constraint
     CONSTRAINT UQ_User_Role UNIQUE (UserId, RoleId)
+);
+
+
+---------- DutyExpenses--------------
+
+
+	CREATE TABLE DutyExpenses
+(
+    DutyExpenseId INT IDENTITY PRIMARY KEY,
+    DutyId INT NOT NULL,   -- Foreign Key (Duty table)
+    ExpenseType VARCHAR(100) NOT NULL,
+    Description VARCHAR(500) NULL,
+    ExpenseAmount VARCHAR(100) NOT NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0
 );
