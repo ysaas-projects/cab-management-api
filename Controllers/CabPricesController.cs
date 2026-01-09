@@ -35,7 +35,7 @@ namespace cab_management.Controllers
                 {
                     return ApiResponse(
                         success: true,
-                        message: "Data Retrieved Successfully",
+                        message: "Cab prices retrieved successfully",
                         data: cabPriceslst
                         );
                 }
@@ -43,7 +43,8 @@ namespace cab_management.Controllers
                 {
                     return ApiResponse(
                         success: false,
-                        message: "Data Not Found",
+                        message: "Cab prices not found",
+                        error: "Not found",
                         statusCode: 404
                         );
                 }
@@ -52,7 +53,7 @@ namespace cab_management.Controllers
             {
                 return ApiResponse(
                     success: false,
-                    message: "Something Went Wrong",
+                    message: "An error occurred while retrieving cab prices",
                     error:ex.Message,
                     statusCode: 500
                     );
@@ -76,7 +77,7 @@ namespace cab_management.Controllers
                 {
                     return ApiResponse(
                         success: true,
-                        message: "Data Retrieved Successfully",
+                        message: "Cab price retrieved successfully",
                         data: cabPrice
                         );
                 }
@@ -84,7 +85,8 @@ namespace cab_management.Controllers
                 {
                     return ApiResponse(
                         success: false,
-                        message: "Data Not Found",
+                        message: "Cab price not found",
+                        error:"Not found",
                         statusCode: 404
                         );
                 }
@@ -93,7 +95,7 @@ namespace cab_management.Controllers
             {
                 return ApiResponse(
                     success: false,
-                    message: "Something Went Wrong",
+                    message: "An error occurred while retrieving cab price",
                     error: ex.Message,
                     statusCode: 500
                     );
@@ -117,7 +119,7 @@ namespace cab_management.Controllers
 
                     return ApiResponse(
                         success: false,
-                        message: "Validation Error",
+                        message: "Validation error",
                         errors: errorslst,
                         statusCode: 400
                         );
@@ -137,7 +139,7 @@ namespace cab_management.Controllers
 
                     return ApiResponse(
                         success: true,
-                        message: "Data Added Successfully",
+                        message: "Cab price created successfully",
                         data: cabprice
                         );
                 }
@@ -146,7 +148,7 @@ namespace cab_management.Controllers
             {
                 return ApiResponse(
                     success: false,
-                    message: "Something Went Wrong",
+                    message: "error occurred while creating cab price",
                     error: ex.Message,
                     statusCode:500
                     );
@@ -169,9 +171,15 @@ namespace cab_management.Controllers
                 {
                     if (!ModelState.IsValid && !ModelState.IsNullOrEmpty())
                     {
+                        var errorlst = ModelState.Values
+                            .SelectMany(e => e.Errors
+                            .Select(e => e.ErrorMessage))
+                            .ToList();
+                            
                         return ApiResponse(
                             success: false,
-                            message: "Validation Error",
+                            message: "Validation error",
+                            errors:errorlst,
                             statusCode: 404
                             );
                     }
@@ -188,7 +196,7 @@ namespace cab_management.Controllers
                         _context.SaveChanges();
                         return ApiResponse(
                             success: true,
-                            message: "Record Updated Successfully"
+                            message: "Cab price updated successfully"
                             );
 
                     }
@@ -197,7 +205,8 @@ namespace cab_management.Controllers
                 {
                     return ApiResponse(
                         success: false,
-                        message: "Record Not Found",
+                        message: "Cab price not found",
+                        error:"Not found",
                         statusCode: 404
                         );
                 }
@@ -206,7 +215,7 @@ namespace cab_management.Controllers
             {
                 return ApiResponse(
                     success: false,
-                    message: "Something Went Wrong",
+                    message: " An error occurred while updating cab price",
                     error: ex.Message,
                     statusCode: 500
                     );
@@ -229,9 +238,10 @@ namespace cab_management.Controllers
                 if (existingdata != null)
                 {
                     existingdata.IsDeleted = true;
+                    _context.SaveChanges();
                     return ApiResponse(
                         success: true,
-                        message: "Record Deleted Successfully",
+                        message: "Cab price deleted successfully",
                         data: existingdata
                         );
                 }
@@ -239,7 +249,8 @@ namespace cab_management.Controllers
                 {
                     return ApiResponse(
                         success: false,
-                        message: "Record Not Found",
+                        message: "Cab price not found",
+                        error:"Not found",
                         statusCode: 404
                         );
                 }
@@ -248,7 +259,7 @@ namespace cab_management.Controllers
             {
                 return ApiResponse(
                     success: false,
-                    message: "Something Went Wrong",
+                    message: "An error occurred while deleting cab price",
                     error: ex.Message,
                     statusCode: 500
                     );
