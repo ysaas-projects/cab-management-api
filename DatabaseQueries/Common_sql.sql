@@ -111,4 +111,22 @@ CREATE TABLE DriverDetails
     UpdatedAt DATETIME NULL,
     IsDeleted BIT NOT NULL DEFAULT 0
 );
+--CONSTRAINT FK_DriverDetails_Duties FOREIGN KEY (UserId) REFERENCES Users(UserId)
+--CONSTRAINT FK_DriverDetails_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
 
+
+CREATE TABLE DutyLocations
+(
+    DutyLocationId INT IDENTITY PRIMARY KEY,
+    FirmId INT NOT NULL,
+    DutyId INT NOT NULL,
+    Address VARCHAR(250) NOT NULL,
+    GeoLocation VARCHAR(100) NULL,
+    IsActive BIT DEFAULT 1,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT DEFAULT 0
+);
+
+--CONSTRAINT FK_DutyLocations_Duties FOREIGN KEY (DutyId) REFERENCES Duties(DutyId)
+--CONSTRAINT FK_DutyLocations_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
