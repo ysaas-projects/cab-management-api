@@ -139,3 +139,91 @@ CREATE TABLE DriverDetails
     UpdatedAt DATETIME NULL,
     IsDeleted BIT NOT NULL DEFAULT 0
 );
+
+------------------DUTY LOCATIONS-------------------
+CREATE TABLE DutyLocations
+(
+    DutyLocationId INT IDENTITY PRIMARY KEY,
+    FirmId INT NOT NULL,
+    DutyId INT NOT NULL,
+    Address VARCHAR(250) NOT NULL,
+    GeoLocation VARCHAR(100) NULL,
+    IsActive BIT DEFAULT 1,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT DEFAULT 0
+);
+
+--CONSTRAINT FK_DutyLocations_Duties FOREIGN KEY (DutyId) REFERENCES Duties(DutyId)
+--CONSTRAINT FK_DutyLocations_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
+
+------------------CAB NUMBER DIRECTORY-------------------
+	CREATE TABLE CabNumberDirectory
+(
+    CabNumberDirectoryId INT IDENTITY PRIMARY KEY,
+    
+    FirmId INT NOT NULL,
+    
+    CabId INT NOT NULL,
+    
+    CabNumber VARCHAR(20) NOT NULL,
+    
+    IsActive BIT NOT NULL DEFAULT 1,
+    
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    
+    UpdatedAt DATETIME NULL,
+    
+    IsDeleted BIT NOT NULL DEFAULT 0
+);
+------------------INVOICE ITEMS-------------------
+CREATE TABLE InvoiceItems
+(
+    InvoiceItemId INT IDENTITY(1,1) PRIMARY KEY,
+ 
+    FirmId INT NOT NULL,
+ 
+    InvoiceId INT NOT NULL,
+ 
+    Particulars NVARCHAR(255) NOT NULL,
+ 
+    Quantity INT NOT NULL,
+ 
+    Price DECIMAL(12,2) NOT NULL,
+ 
+    TotalPrice DECIMAL(10,2) NOT NULL,
+ 
+    IsActive BIT NOT NULL DEFAULT 1,
+ 
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+ 
+    IsDeleted BIT NOT NULL DEFAULT 0,
+);
+
+------------------INVOICE--------------------
+CREATE TABLE Invoices
+(
+    InvoiceId INT IDENTITY(1,1) PRIMARY KEY,
+ 
+    FirmId INT NOT NULL,
+    CustomerId INT NOT NULL,
+ 
+    InvoiceDate DATETIME NOT NULL,
+    InvoiceNumber NVARCHAR(50) NOT NULL UNIQUE,
+ 
+    IterneryCode NVARCHAR(50),
+ 
+    DutySlipId INT NOT NULL,
+ 
+    TotalAmount DECIMAL(12,2) NOT NULL,
+ 
+    IsActive BIT NOT NULL DEFAULT 1,
+ 
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+ 
+    IsDeleted BIT NOT NULL DEFAULT 0,
+ 
+    
+);
