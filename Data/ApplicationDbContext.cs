@@ -33,6 +33,8 @@ namespace cab_management.Data
         public DbSet<Cab> Cabs { get; set; }
         public DbSet<Customer>Customers { get; set; }
         public DbSet<DriverDetail> DriverDetails { get; set; }
+        public DbSet<DutySlip> DutySlips { get; set; }
+
 
         // =========================
         // MODEL CONFIGURATION
@@ -41,6 +43,12 @@ namespace cab_management.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Firm>()
+                .HasOne(f => f.FirmDetails)
+                .WithOne(fd => fd.Firm)
+                .HasForeignKey<FirmDetail>(fd => fd.FirmId);
+
 
         }
 

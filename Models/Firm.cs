@@ -8,21 +8,21 @@ namespace cab_management.Models
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int FirmId { get; set; }
-        [Required]
-        public string? FirmName { get; set; }
 
         [Required]
-        public string? FirmCode { get; set; }
-        // ---------------- STATUS FLAGS ----------------
+        public string FirmName { get; set; } = null!;
+
         [Required]
+        public string FirmCode { get; set; } = null!;
+
         public bool IsActive { get; set; }
         public bool IsDeleted { get; set; } = false;
-        // ---------------- AUDIT FIELDS ----------------
-        [Required]
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
-        public ICollection<FirmDetail> FirmDetails { get; set; } = new List<FirmDetail>();
 
+        // One-to-One
+        public FirmDetail FirmDetails { get; set; } = null!;
     }
     public class FirmCreateDto
     {

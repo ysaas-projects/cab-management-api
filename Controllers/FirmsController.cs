@@ -9,9 +9,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace cab_management.Controllers
 {
-    [Authorize(AuthenticationSchemes =
-        JwtBearerDefaults.AuthenticationScheme + "," +
-        CookieAuthenticationDefaults.AuthenticationScheme)]
+    //[Authorize(AuthenticationSchemes =
+    //    JwtBearerDefaults.AuthenticationScheme + "," +
+    //    CookieAuthenticationDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
     [ApiController]
     public class FirmsController : BaseApiController
@@ -40,18 +40,18 @@ namespace cab_management.Controllers
                         FirmCode = f.FirmCode,
                         IsActive = f.IsActive,
 
-                        FirmDetails = f.FirmDetails
-                            .Where(fd => !fd.IsDeleted)
-                            .Select(fd => new FirmDetailsDto
+                        FirmDetails = f.FirmDetails != null && !f.FirmDetails.IsDeleted
+                            ? new FirmDetailsDto
                             {
-                                Address = fd.Address,
-                                ContactNumber = fd.ContactNumber,
-                                ContactPerson = fd.ContactPerson,
-                                GstNumber = fd.GstNumber,
-                                LogoImagePath = fd.LogoImagePath,
-                                IsActive = fd.IsActive
-                            })
-                            .FirstOrDefault()
+                                FirmDetailsId = f.FirmDetails.FirmDetailsId,
+                                Address = f.FirmDetails.Address,
+                                ContactNumber = f.FirmDetails.ContactNumber,
+                                ContactPerson = f.FirmDetails.ContactPerson,
+                                GstNumber = f.FirmDetails.GstNumber,
+                                LogoImagePath = f.FirmDetails.LogoImagePath,
+                                IsActive = f.FirmDetails.IsActive
+                            }
+                            : null
                     })
                     .ToListAsync();
 
@@ -63,6 +63,75 @@ namespace cab_management.Controllers
             }
         }
 
+        // GET PAGINATED FIRMS
+        [HttpGet("paginated")]
+        public async Task<IActionResult> GetFirmsPaginated(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = "",
+            [FromQuery] bool? isActive = null)
+        {
+            try
+            {
+                if (pageNumber < 1)
+                    return ApiResponse(false, "Page number must be >= 1");
+
+                if (pageSize < 1 || pageSize > 100)
+                    return ApiResponse(false, "Page size must be 1–100");
+
+                var query = _context.Firms
+                    .Where(f => !f.IsDeleted);
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var s = search.Trim().ToLower();
+                    query = query.Where(f => f.FirmName.ToLower().Contains(s) || f.FirmCode.ToLower().Contains(s));
+                }
+
+                if (isActive.HasValue)
+                    query = query.Where(f => f.IsActive == isActive.Value);
+
+                var totalCount = await query.CountAsync();
+
+                var items = await query
+                    .OrderBy(f => f.FirmName)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(f => new FirmResponseDto
+                    {
+                        FirmId = f.FirmId,
+                        FirmName = f.FirmName,
+                        FirmCode = f.FirmCode,
+                        IsActive = f.IsActive,
+                        FirmDetails = f.FirmDetails != null && !f.FirmDetails.IsDeleted
+                            ? new FirmDetailsDto
+                            {
+                                FirmDetailsId=f.FirmDetails.FirmDetailsId,
+                                Address = f.FirmDetails.Address,
+                                ContactNumber = f.FirmDetails.ContactNumber,
+                                ContactPerson = f.FirmDetails.ContactPerson,
+                                GstNumber = f.FirmDetails.GstNumber,
+                                LogoImagePath = f.FirmDetails.LogoImagePath,
+                                IsActive = f.FirmDetails.IsActive
+                            }
+                            : null
+                    })
+                    .ToListAsync();
+
+                return ApiResponse(true, "Firms retrieved successfully", new
+                {
+                    TotalCount = totalCount,
+                    PageSize = pageSize,
+                    CurrentPage = pageNumber,
+                    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+                    Items = items
+                });
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse(false, "Error retrieving firms", error: ex.Message);
+            }
+        }
 
         // ================================
         // GET FIRM BY ID
@@ -80,18 +149,18 @@ namespace cab_management.Controllers
                         f.FirmName,
                         f.FirmCode,
                         f.IsActive,
-                        FirmDetails = f.FirmDetails
-                            .Where(fd => !fd.IsDeleted)
-                            .Select(fd => new
+                        FirmDetails = f.FirmDetails != null && !f.FirmDetails.IsDeleted
+                            ? new
                             {
-                                fd.Address,
-                                fd.ContactNumber,
-                                fd.ContactPerson,
-                                fd.GstNumber,
-                                fd.LogoImagePath,
-                                fd.IsActive
-                            })
-                            .FirstOrDefault()
+                                FirmDetailsId=f.FirmDetails.FirmDetailsId,
+                                f.FirmDetails.Address,
+                                f.FirmDetails.ContactNumber,
+                                f.FirmDetails.ContactPerson,
+                                f.FirmDetails.GstNumber,
+                                f.FirmDetails.LogoImagePath,
+                                f.FirmDetails.IsActive
+                            }
+                            : null
                     })
                     .FirstOrDefaultAsync();
 
