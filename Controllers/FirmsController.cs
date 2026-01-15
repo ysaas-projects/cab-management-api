@@ -3,7 +3,6 @@ using cab_management.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,13 +16,14 @@ namespace cab_management.Controllers
     public class FirmsController : BaseApiController
     {
         private readonly ApplicationDbContext _context;
+
         public FirmsController(ApplicationDbContext context)
         {
             _context = context;
         }
 
         // ================================
-        // GET ALL FIRMS
+        // GET ALL FIRMS (Firm + FirmDetails)
         // ================================
         [HttpGet]
         public async Task<IActionResult> GetFirms()
@@ -39,11 +39,11 @@ namespace cab_management.Controllers
                         FirmName = f.FirmName,
                         FirmCode = f.FirmCode,
                         IsActive = f.IsActive,
-
                         FirmDetails = f.FirmDetails
                             .Where(fd => !fd.IsDeleted)
                             .Select(fd => new FirmDetailsDto
                             {
+                                FirmDetailsId = fd.FirmDetailsId,
                                 Address = fd.Address,
                                 ContactNumber = fd.ContactNumber,
                                 ContactPerson = fd.ContactPerson,
@@ -55,7 +55,7 @@ namespace cab_management.Controllers
                     })
                     .ToListAsync();
 
-                return ApiResponse(true, "Firm retrieved successfully", firms);
+                return ApiResponse(true, "Firms retrieved successfully", firms);
             }
             catch (Exception ex)
             {
@@ -63,77 +63,55 @@ namespace cab_management.Controllers
             }
         }
 
-
         // ================================
         // GET FIRM BY ID
         // ================================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetFirmById(int id)
         {
-            try
-            {
-                var firm = await _context.Firms
-                    .Where(f => f.FirmId == id && !f.IsDeleted)
-                    .Select(f => new
-                    {
-                        f.FirmId,
-                        f.FirmName,
-                        f.FirmCode,
-                        f.IsActive,
-                        FirmDetails = f.FirmDetails
-                            .Where(fd => !fd.IsDeleted)
-                            .Select(fd => new
-                            {
-                                fd.Address,
-                                fd.ContactNumber,
-                                fd.ContactPerson,
-                                fd.GstNumber,
-                                fd.LogoImagePath,
-                                fd.IsActive
-                            })
-                            .FirstOrDefault()
-                    })
-                    .FirstOrDefaultAsync();
-
-                if (firm == null)
+            var firm = await _context.Firms
+                .Where(f => f.FirmId == id && !f.IsDeleted)
+                .Select(f => new FirmResponseDto
                 {
-                    return ApiResponse(false, "Firm not found", error: "NotFound");
-                }
+                    FirmId = f.FirmId,
+                    FirmName = f.FirmName,
+                    FirmCode = f.FirmCode,
+                    IsActive = f.IsActive,
+                    FirmDetails = f.FirmDetails
+                        .Where(fd => !fd.IsDeleted)
+                        .Select(fd => new FirmDetailsDto
+                        {
+                            FirmDetailsId = fd.FirmDetailsId,
+                            Address = fd.Address,
+                            ContactNumber = fd.ContactNumber,
+                            ContactPerson = fd.ContactPerson,
+                            GstNumber = fd.GstNumber,
+                            LogoImagePath = fd.LogoImagePath,
+                            IsActive = fd.IsActive
+                        })
+                        .FirstOrDefault()
+                })
+                .FirstOrDefaultAsync();
 
-                return ApiResponse(true, "Firm retrieved successfully", firm);
-            }
-            catch (Exception ex)
-            {
+            if (firm == null)
+                return ApiResponse(false, "Firm not found", error: "NotFound");
 
-                return ApiResponse(
-                    false,
-                    "An error occurred while retrieving firm details",
-                    error: ex.Message
-                );
-            }
+            return ApiResponse(true, "Firm retrieved successfully", firm);
         }
 
-
         // ================================
-        // CREATE FIRM
+        // CREATE FIRM + EMPTY FIRM DETAILS
         // ================================
-
+        
         [HttpPost]
-        public async Task<IActionResult> CreateFirm([FromForm] FirmCreateDto dto)
+        public async Task<IActionResult> CreateFirm([FromBody] FirmDetailsFirmCreateDto dto)
         {
             if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
-
-                return ApiResponse(false, "Invalid data", null, "bad_request", errors);
-            }
+                return ApiResponse(false, "Invalid data");
 
             bool exists = await _context.Firms.AnyAsync(f =>
                 (f.FirmName.ToLower() == dto.FirmName.ToLower()
-                || f.FirmCode.ToLower() == dto.FirmCode.ToLower())
+                 || f.FirmCode.ToLower() == dto.FirmCode.ToLower())
                 && !f.IsDeleted);
 
             if (exists)
@@ -154,23 +132,23 @@ namespace cab_management.Controllers
                 };
 
                 _context.Firms.Add(firm);
-                await _context.SaveChangesAsync(); 
+                await _context.SaveChangesAsync();
 
-                var firmDetails = new FirmDetail
+                var firmDetail = new FirmDetail
                 {
                     FirmId = firm.FirmId,
-                    Address="",
-                    ContactNumber="",
-                    ContactPerson="",
-                    GstNumber="",
-                    LogoImagePath="",
+                    Address = dto.Address,
+                    ContactNumber = dto.ContactNumber,
+                    ContactPerson = dto.ContactPerson,
+                    GstNumber = dto.GstNumber,
+                    LogoImagePath = dto.LogoImagePath,
                     IsActive = true,
                     IsDeleted = false,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
                 };
 
-                _context.FirmDetails.Add(firmDetails);
+                _context.FirmDetails.Add(firmDetail);
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
@@ -188,52 +166,61 @@ namespace cab_management.Controllers
             }
         }
 
-
-        //================================
-        //UPDATE FIRM
-        //================================
+        // ================================
+        // UPDATE FIRM
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateFirm(int id, [FromBody] FirmUpdateDto dto)
+        public async Task<IActionResult> UpdateFirm(
+    int id,
+    [FromBody] FirmDetailsFirmUpdateDto dto)
         {
-            if (!ModelState.IsValid)
+            if (id != dto.FirmId)
+                return ApiResponse(false, "FirmId mismatch");
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
             {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
+                // Firm
+                var firm = await _context.Firms
+                    .FirstOrDefaultAsync(f => f.FirmId == id && !f.IsDeleted);
 
-                return ApiResponse(false, "Invalid data", null, "bad_request", errors);
+                if (firm == null)
+                    return ApiResponse(false, "Firm not found");
+
+                firm.FirmName = dto.FirmName;
+                firm.FirmCode = dto.FirmCode;
+                firm.IsActive = dto.IsActive;
+                firm.UpdatedAt = DateTime.Now;
+
+                // FirmDetails
+                var details = await _context.FirmDetails
+                    .FirstOrDefaultAsync(fd => fd.FirmId == id && !fd.IsDeleted);
+
+                if (details == null)
+                    return ApiResponse(false, "Firm details not found");
+
+                details.Address = dto.Address;
+                details.ContactNumber = dto.ContactNumber;
+                details.ContactPerson = dto.ContactPerson;
+                details.GstNumber = dto.GstNumber;
+                details.LogoImagePath = dto.LogoImagePath;
+                details.UpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return ApiResponse(true, "Firm updated successfully");
             }
-
-            var firm = await _context.Firms
-                .FirstOrDefaultAsync(f => f.FirmId == id && !f.IsDeleted);
-
-            if (firm == null)
-                return ApiResponse(false, "Firm not found", error: "NotFound");
-
-            bool duplicate = await _context.Firms.AnyAsync(f =>
-                (f.FirmName.ToLower() == dto.FirmName.ToLower()
-                 || f.FirmCode.ToLower() == dto.FirmCode.ToLower())
-                && f.FirmId != id
-                && !f.IsDeleted);
-
-            if (duplicate)
-                return ApiResponse(false, "Firm name or code already exists", error: "Duplicate");
-
-            firm.FirmName = dto.FirmName.Trim();
-            firm.FirmCode = dto.FirmCode.Trim();
-            firm.IsActive = dto.IsActive;
-            firm.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            return ApiResponse(true, "Firm updated successfully");
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return ApiResponse(false, "Error updating firm", error: ex.Message);
+            }
         }
 
-        //================================
-        //DELETE FIRM
-        //================================
-
+        // ================================
+        // DELETE FIRM (SOFT DELETE)
+        // ================================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteFirm(int id)
         {
@@ -241,22 +228,14 @@ namespace cab_management.Controllers
                 .FirstOrDefaultAsync(f => f.FirmId == id && !f.IsDeleted);
 
             if (firm == null)
-                return ApiResponse(false, "Firm not found or already deleted", error: "NotFound");
+                return ApiResponse(false, "Firm not found", error: "NotFound");
 
             firm.IsDeleted = true;
-            firm.UpdatedAt = DateTime.Now; 
+            firm.UpdatedAt = DateTime.Now;
 
-            try
-            {
-                await _context.SaveChangesAsync();
-                return ApiResponse(true, "Firm deleted successfully");
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse(false, "Error deleting firm", error: ex.Message);
-            }
+            await _context.SaveChangesAsync();
+
+            return ApiResponse(true, "Firm deleted successfully");
         }
-
-
     }
 }

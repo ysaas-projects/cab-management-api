@@ -8,7 +8,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace cab_management.Controllers
 {
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + "," + CookieAuthenticationDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes =
+        JwtBearerDefaults.AuthenticationScheme + "," +
+        CookieAuthenticationDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
     [ApiController]
     public class FirmDetailsController : BaseApiController
@@ -20,44 +22,31 @@ namespace cab_management.Controllers
             _context = context;
         }
 
+        // ================================
+        // UPDATE FIRM DETAILS (BY FirmId)
+        // ================================
+        [HttpPut("by-firm/{firmId}")]
+        public async Task<IActionResult> UpdateFirmDetails(
+            int firmId,
+            [FromBody] FirmDetailsUpdateDto dto)
+        {
+            var firmDetails = await _context.FirmDetails
+                .FirstOrDefaultAsync(fd => fd.FirmId == firmId && !fd.IsDeleted);
 
-        
+            if (firmDetails == null)
+                return ApiResponse(false, "Firm details not found", error: "NotFound");
 
-            [HttpPut("{firmDetailsId}")]
-            public async Task<IActionResult> UpdateFirmDetails(
-    int firmDetailsId,
-    [FromBody] FirmDetailsUpdateDto dto)
-            {
-                var firmDetails = await _context.FirmDetails
-                    .FirstOrDefaultAsync(fd => fd.FirmDetailsId == firmDetailsId && !fd.IsDeleted);
+            firmDetails.Address = dto.Address;
+            firmDetails.ContactNumber = dto.ContactNumber;
+            firmDetails.ContactPerson = dto.ContactPerson;
+            firmDetails.GstNumber = dto.GstNumber;
+            firmDetails.LogoImagePath = dto.LogoImagePath;
+            firmDetails.IsActive = dto.IsActive;
+            firmDetails.UpdatedAt = DateTime.Now;
 
-                if (firmDetails == null)
-                    return ApiResponse(false, "Firm details not found", error: "NotFound");
+            await _context.SaveChangesAsync();
 
-                firmDetails.Address = dto.Address;
-                firmDetails.ContactNumber = dto.ContactNumber;
-                firmDetails.ContactPerson = dto.ContactPerson;
-                firmDetails.GstNumber = dto.GstNumber;
-                firmDetails.LogoImagePath = dto.LogoImagePath;
-                firmDetails.IsActive = dto.IsActive;
-                firmDetails.UpdatedAt = DateTime.Now;
-
-                await _context.SaveChangesAsync();
-
-                var response = new
-                {
-                    firmDetails.FirmDetailsId,
-                    firmDetails.FirmId,
-                    firmDetails.Address,
-                    firmDetails.ContactNumber,
-                    firmDetails.ContactPerson,
-                    firmDetails.GstNumber,
-                    firmDetails.LogoImagePath,
-                    firmDetails.IsActive
-                };
-
-                return ApiResponse(true, "Firm details updated successfully", response);
-            }
-
+            return ApiResponse(true, "Firm details updated successfully");
+        }
     }
 }

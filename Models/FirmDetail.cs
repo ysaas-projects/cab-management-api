@@ -80,6 +80,8 @@ namespace cab_management.Models
     }
     public class FirmDetailsDto
     {
+        public int FirmDetailsId { get; set; }   
+
         public string Address { get; set; }
         public string ContactNumber { get; set; }
         public string ContactPerson { get; set; }
