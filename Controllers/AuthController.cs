@@ -149,44 +149,7 @@ namespace cab_management.Controllers
             await _context.SaveChangesAsync();
 
             var activeStatus = false;
-
-            //if (user?.FirmType == "Mill")
-            //{
-            //    var millId = user.FirmId ?? 0;
-            //    var mill = await _context.Mills
-            //        .Include(m => m.City)
-            //        .Include(m => m.State)
-            //        .Where(m => m.MillId == millId && !m.IsDeleted)
-            //        .Select(m => new MillResponseDto
-            //        {
-            //            MillId = m.MillId,
-            //            MillName = m.MillName,
-            //            MillCode = m.MillCode,
-            //            Address = m.Address,
-            //            CityId = m.CityId,
-            //            CityName = m.City!.CityName,
-            //            StateId = m.StateId,
-            //            StateName = m.State!.StateName,
-            //            ContactPerson = m.ContactPerson,
-            //            ContactNumber = m.ContactNumber,
-            //            Email = m.Email,
-            //            GstNumber = m.GstNumber,
-            //            Country = m.Country ?? "India",
-            //            Pincode = m.Pincode,
-            //            IsActive = m.IsActive,
-            //            CreatedAt = m.CreatedAt,
-            //            UpdatedAt = m.UpdatedAt
-            //        })
-            //        .FirstOrDefaultAsync();
-
-            //    //var mill = await _millService.GetMillsByIdAsync(user.FirmId ?? 0);
-            //    activeStatus = mill.IsActive;
-            //}
-            //else if (user?.FirmType == "Company")
-            //{
-            //    // add here company code
-            //}
-
+          
             // Return JWT tokens in response body
             var response = new AuthResponse
             {
