@@ -2,7 +2,6 @@
 using cab_management.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 
 namespace cab_management.Controllers
 {
@@ -12,170 +11,201 @@ namespace cab_management.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CabPricesController> _logger;
-        public CabPricesController(ApplicationDbContext context, ILogger<CabPricesController> logger)
+
+        public CabPricesController(
+            ApplicationDbContext context,
+            ILogger<CabPricesController> logger)
         {
             _context = context;
             _logger = logger;
         }
 
-        //=========================================
-        //  GET ALL CAB PRICES
-        //=========================================
+        // =====================================================
+        // GET ALL CAB PRICES (FirmName + CabType)
+        // =====================================================
         [HttpGet]
         public async Task<IActionResult> GetCabPrices()
         {
             try
             {
-                var prices = await _context.CabPrices.Where(e => !e.IsDeleted).
-                    Select(c => new CabPriceResponseDto
+                var prices = await _context.CabPrices
+                    .Where(cp => !cp.IsDeleted)
+                    .Include(cp => cp.Firm)
+                    .Include(cp => cp.Cab)
+                    .Select(cp => new CabPriceResponseDto
                     {
-                        CabPriceId = c.CabPriceId,
-                        FirmId = c.FirmId,
-                        CabId = c.CabId,
-                        PriceRuleId = c.PriceRuleId,
-                        Price = c.Price,
-                        IsActive = c.IsActive,
-                        CreatedAt = c.CreatedAt,
-                        UpdatedAt = c.UpdatedAt,
-                        IsDeleted = c.IsDeleted
-                    }).ToListAsync();
-                return ApiResponse(true, "cab prices retrieved successfully", prices);
+                        CabPriceId = cp.CabPriceId,
+
+                        FirmId = cp.FirmId,
+                        FirmName = cp.Firm.FirmName,
+
+                        CabId = cp.CabId,
+                        CabType = cp.Cab.CabType,
+
+                        PricingRuleId = cp.PricingRuleId,
+                        Price = cp.Price,
+
+                        IsActive = cp.IsActive,
+                        CreatedAt = cp.CreatedAt,
+                        UpdatedAt = cp.UpdatedAt
+                    })
+                    .ToListAsync();
+
+                return ApiResponse(true, "Cab prices fetched successfully", prices);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving cab prices");
-                return ApiResponse(false, "Error retrieving cab prices", error: ex.Message);
+                _logger.LogError(ex, "Error fetching cab prices");
+                return ApiResponse(false, "Error fetching cab prices", error: ex.Message);
             }
         }
 
-        //=========================================
-        //  GET BY ID CABPRICES
-        //=========================================
+        // =====================================================
+        // GET CAB PRICE BY ID
+        // =====================================================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCabPrice(int id)
         {
             try
             {
-                var prices = await _context.CabPrices.Where(e => e.CabPriceId == id && !e.IsDeleted).
-                    Select(c => new CabPriceResponseDto
+                var price = await _context.CabPrices
+                    .Where(cp => cp.CabPriceId == id && !cp.IsDeleted)
+                    .Include(cp => cp.Firm)
+                    .Include(cp => cp.Cab)
+                    .Select(cp => new CabPriceResponseDto
                     {
-                        CabPriceId = c.CabPriceId,
-                        FirmId = c.FirmId,
-                        CabId = c.CabId,
-                        PriceRuleId = c.PriceRuleId,
-                        Price = c.Price,
-                        IsActive = c.IsActive,
-                        CreatedAt = c.CreatedAt,
-                        UpdatedAt = c.UpdatedAt,
-                        IsDeleted = c.IsDeleted
-                    }).FirstOrDefaultAsync();
-                if (prices == null)
+                        CabPriceId = cp.CabPriceId,
 
-                    return ApiResponse(false, "Cab Price not found", error: "Not found");
-                return ApiResponse(true, "cab price retrieved successfully", prices);
+                        FirmId = cp.FirmId,
+                        FirmName = cp.Firm.FirmName,
 
+                        CabId = cp.CabId,
+                        CabType = cp.Cab.CabType,
+
+                        PricingRuleId = cp.PricingRuleId,
+                        Price = cp.Price,
+
+                        IsActive = cp.IsActive,
+                        CreatedAt = cp.CreatedAt,
+                        UpdatedAt = cp.UpdatedAt
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (price == null)
+                    return ApiResponse(false, "Cab price not found", error: "NotFound");
+
+                return ApiResponse(true, "Cab price retrieved successfully", price);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error retrieving cab price");
                 return ApiResponse(false, "Error retrieving cab price", error: ex.Message);
             }
         }
 
-        //=========================================
-        //  CREATE CABPRICES
-        //=========================================
+        // =====================================================
+        // CREATE CAB PRICE
+        // =====================================================
         [HttpPost]
         public async Task<IActionResult> CreateCabPrice([FromBody] CreateCabPriceDto dto)
         {
             if (!ModelState.IsValid)
             {
-                return ApiResponse(false, "validation failed", errors: ModelState.Values.
-                    SelectMany(e => e.Errors).Select(e => e.ErrorMessage).ToList());
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                return ApiResponse(false, "Validation failed", errors: errors);
             }
+
             try
             {
-                var cabprice = new CabPrice
+                var cabPrice = new CabPrice
                 {
                     FirmId = dto.FirmId,
                     CabId = dto.CabId,
-                    PriceRuleId = dto.PriceRuleId,
+                    PricingRuleId = dto.PricingRuleId,
                     Price = dto.Price,
                     IsActive = dto.IsActive,
-                    CreatedAt = dto.CreatedAt,
+                    CreatedAt = DateTime.Now,
                     IsDeleted = false
                 };
-                _context.CabPrices.Add(cabprice);
+
+                _context.CabPrices.Add(cabPrice);
                 await _context.SaveChangesAsync();
-                return ApiResponse(true, "Cab price created successfully", cabprice, statusCode: 201);
+
+                return ApiResponse(true, "Cab price created successfully", new
+                {
+                    cabPrice.CabPriceId
+                }, statusCode: 201);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error creating cab price");
                 return ApiResponse(false, "Error creating cab price", error: ex.Message);
             }
         }
 
-        //=========================================
-        // UPDATE CABPRICES
-        //=========================================
+        // =====================================================
+        // UPDATE CAB PRICE
+        // =====================================================
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCabPrice(int id, [FromBody] UpdateCabPriceDto dto)
         {
             try
             {
-                var cabprice = await _context.CabPrices.Where(c => c.CabPriceId == id && !c.IsDeleted)
-                    .FirstOrDefaultAsync();
-                if (cabprice == null)
+                var cabPrice = await _context.CabPrices
+                    .FirstOrDefaultAsync(cp => cp.CabPriceId == id && !cp.IsDeleted);
 
-                    return ApiResponse(false, "cab price not found", error: "not found");
-                cabprice.FirmId = dto.FirmId;
-                cabprice.CabId = dto.CabId ?? cabprice.CabId;
-                cabprice.PriceRuleId = dto.PriceRuleId ?? cabprice.PriceRuleId;
-                cabprice.Price = dto.Price ?? cabprice.Price;
-                cabprice.IsActive = dto.IsActive ?? cabprice.IsActive;
-                cabprice.UpdatedAt = DateTime.Now;
+                if (cabPrice == null)
+                    return ApiResponse(false, "Cab price not found", error: "NotFound");
+
+                cabPrice.FirmId = dto.FirmId;
+                cabPrice.CabId = dto.CabId ?? cabPrice.CabId;
+                cabPrice.PricingRuleId = dto.PricingRuleId ?? cabPrice.PricingRuleId;
+                cabPrice.Price = dto.Price ?? cabPrice.Price;
+                cabPrice.IsActive = dto.IsActive ?? cabPrice.IsActive;
+                cabPrice.UpdatedAt = DateTime.Now;
 
                 await _context.SaveChangesAsync();
-                return ApiResponse(true, "cab price updated successfully");
 
-
-
-
+                return ApiResponse(true, "Cab price updated successfully");
             }
             catch (Exception ex)
             {
-                return ApiResponse(false, "Error updating cabprice", error: ex.Message);
+                _logger.LogError(ex, "Error updating cab price");
+                return ApiResponse(false, "Error updating cab price", error: ex.Message);
             }
-
         }
 
-        //=========================================
-        //  DELETE CABPRICES
-        //=========================================
+        // =====================================================
+        // DELETE CAB PRICE (SOFT DELETE)
+        // =====================================================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCabPrice(int id)
         {
             try
             {
-                var cabprice = await _context.CabPrices.Where(c => c.CabPriceId == id && !c.IsDeleted)
-                    .FirstOrDefaultAsync();
-                if (cabprice == null)
+                var cabPrice = await _context.CabPrices
+                    .FirstOrDefaultAsync(cp => cp.CabPriceId == id && !cp.IsDeleted);
 
-                    return ApiResponse(false, "cab price not found", error: "not found");
-                cabprice.IsDeleted = true;
-                cabprice.IsActive = false;
-                cabprice.UpdatedAt = DateTime.Now;
+                if (cabPrice == null)
+                    return ApiResponse(false, "Cab price not found", error: "NotFound");
+
+                cabPrice.IsDeleted = true;
+                cabPrice.IsActive = false;
+                cabPrice.UpdatedAt = DateTime.Now;
+
                 await _context.SaveChangesAsync();
-                return ApiResponse(true, "cab price deleted successfully");
 
-
+                return ApiResponse(true, "Cab price deleted successfully");
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error deleting cab price");
                 return ApiResponse(false, "Error deleting cab price", error: ex.Message);
             }
         }
-
-
-
     }
 }

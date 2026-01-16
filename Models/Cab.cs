@@ -18,14 +18,16 @@ namespace cab_management.Models
 
             public DateTime? CreatedAt { get; set; } = DateTime.Now;
 
-            public DateTime? UpdatedAt { get; set; }
-        }
+        public DateTime? UpdatedAt { get; set; }
+        public ICollection<CabPrice> CabPrices { get; set; } = new List<CabPrice>();
+
+    }
 
 
-        // =================
-        // CREATE CAB DTO
-        // =================
-        public class CreateCabDto
+    // =================
+    // CREATE CAB DTO
+    // =================
+    public class CreateCabDto
         {
             [Required]
             [Range(1, int.MaxValue, ErrorMessage = "OrganizationId must be greater than 0.")]

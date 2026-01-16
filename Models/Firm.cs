@@ -22,7 +22,9 @@ namespace cab_management.Models
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
         public ICollection<FirmDetail> FirmDetails { get; set; } = new List<FirmDetail>();
-        
+
+        public ICollection<CabPrice> CabPrices { get; set; } = new List<CabPrice>();
+
     }
     public class FirmCreateDto
     {
