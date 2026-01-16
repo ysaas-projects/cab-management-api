@@ -70,8 +70,8 @@ public class UpdateDriverDetailDTO
     [Required(ErrorMessage = "DriverName is Requried")]
     public string? DriverName { get; set; }
 
-    [Required(ErrorMessage = "Mobile Number is Requried")]
-    [StringLength(13, ErrorMessage = "Mobile Number must be in 13")]
+    //[Required(ErrorMessage = "Mobile Number is Requried")]
+    //[StringLength(13, ErrorMessage = "Mobile Number must be in 13")]
     public string? MoblieNumber { get; set; }
     public bool? IsActive { get; set; }
     public DateTime? UpdatedAt { get; set; } = DateTime.Now;

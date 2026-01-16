@@ -123,7 +123,7 @@ namespace cab_management.Controllers
                 }
 
                 var driverDetail = _context.DriverDetails.FirstOrDefault(d => d.DriverDetailId.Equals(id) && d.IsDeleted.Equals(false));
-                if (driverDetail != null) ;
+                //if (driverDetail != null) ;
 
                 if (driverDetail == null)
                 {
