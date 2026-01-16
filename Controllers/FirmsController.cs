@@ -8,9 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace cab_management.Controllers
 {
-    [Authorize(AuthenticationSchemes =
-        JwtBearerDefaults.AuthenticationScheme + "," +
-        CookieAuthenticationDefaults.AuthenticationScheme)]
+    //[Authorize(AuthenticationSchemes =JwtBearerDefaults.AuthenticationScheme + "," + CookieAuthenticationDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
     [ApiController]
     public class FirmsController : BaseApiController

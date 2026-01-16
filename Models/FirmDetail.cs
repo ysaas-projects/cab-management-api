@@ -77,6 +77,8 @@ namespace cab_management.Models
         public string? GstNumber { get; set; }
         public string? LogoImagePath { get; set; }
         public bool IsActive { get; set; }
+
+        public IFormFile? Logo { get; set; }
     }
     public class FirmDetailsDto
     {

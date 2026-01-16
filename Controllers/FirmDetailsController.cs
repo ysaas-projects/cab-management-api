@@ -8,9 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace cab_management.Controllers
 {
-    [Authorize(AuthenticationSchemes =
-        JwtBearerDefaults.AuthenticationScheme + "," +
-        CookieAuthenticationDefaults.AuthenticationScheme)]
+    //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + "," + CookieAuthenticationDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
     [ApiController]
     public class FirmDetailsController : BaseApiController
@@ -22,31 +20,121 @@ namespace cab_management.Controllers
             _context = context;
         }
 
-        // ================================
-        // UPDATE FIRM DETAILS (BY FirmId)
-        // ================================
-        [HttpPut("by-firm/{firmId}")]
-        public async Task<IActionResult> UpdateFirmDetails(
-            int firmId,
-            [FromBody] FirmDetailsUpdateDto dto)
+        [HttpPut("{firmDetailsId}")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateFirmDetails(int firmDetailsId, [FromForm] FirmDetailsUpdateDto dto)
         {
             var firmDetails = await _context.FirmDetails
-                .FirstOrDefaultAsync(fd => fd.FirmId == firmId && !fd.IsDeleted);
+                .FirstOrDefaultAsync(fd => fd.FirmDetailsId == firmDetailsId && !fd.IsDeleted);
 
             if (firmDetails == null)
                 return ApiResponse(false, "Firm details not found", error: "NotFound");
 
+            // ================================
+            // IMAGE UPLOAD + OLD IMAGE DELETE
+            // ================================
+            if (dto.Logo != null && dto.Logo.Length > 0)
+            {
+                var uploadsFolder = Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "wwwroot",
+                    "uploads"
+                );
+
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+
+                //DELETE OLD IMAGE (if exists)
+                if (!string.IsNullOrWhiteSpace(firmDetails.LogoImagePath))
+                {
+                    try
+                    {
+                        var oldFileName = Path.GetFileName(
+                            new Uri(firmDetails.LogoImagePath).LocalPath
+                        );
+
+                        var oldFilePath = Path.Combine(uploadsFolder, oldFileName);
+
+                        if (System.IO.File.Exists(oldFilePath))
+                        {
+                            System.IO.File.Delete(oldFilePath);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore delete failure (do not break update)
+                    }
+                }
+
+                // SAVE NEW IMAGE
+                var newFileName = $"{Guid.NewGuid()}{Path.GetExtension(dto.Logo.FileName)}";
+                var newFilePath = Path.Combine(uploadsFolder, newFileName);
+
+                using (var stream = new FileStream(newFilePath, FileMode.Create))
+                {
+                    await dto.Logo.CopyToAsync(stream);
+                }
+
+                // STORE FULL PUBLIC URL
+                var request = HttpContext.Request;
+                var baseUrl = $"{request.Scheme}://{request.Host}";
+                firmDetails.LogoImagePath = $"{baseUrl}/uploads/{newFileName}";
+            }
+
+            // ================================
+            // UPDATE OTHER FIELDS
+            // ================================
             firmDetails.Address = dto.Address;
             firmDetails.ContactNumber = dto.ContactNumber;
             firmDetails.ContactPerson = dto.ContactPerson;
             firmDetails.GstNumber = dto.GstNumber;
-            firmDetails.LogoImagePath = dto.LogoImagePath;
             firmDetails.IsActive = dto.IsActive;
-            firmDetails.UpdatedAt = DateTime.Now;
+            firmDetails.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
-            return ApiResponse(true, "Firm details updated successfully");
+            var response = new
+            {
+                firmDetails.FirmDetailsId,
+                firmDetails.FirmId,
+                firmDetails.Address,
+                firmDetails.ContactNumber,
+                firmDetails.ContactPerson,
+                firmDetails.GstNumber,
+                firmDetails.LogoImagePath,
+                firmDetails.IsActive
+            };
+
+            return ApiResponse(true, "Firm details updated successfully", response);
         }
+
+
+
+        // ================================
+        // UPDATE FIRM DETAILS (BY FirmId)
+        // ================================
+        //[HttpPut("by-firm/{firmId}")]
+        //public async Task<IActionResult> UpdateFirmDetails(
+        //    int firmId,
+        //    [FromBody] FirmDetailsUpdateDto dto)
+        //{
+        //    var firmDetails = await _context.FirmDetails
+        //        .FirstOrDefaultAsync(fd => fd.FirmId == firmId && !fd.IsDeleted);
+
+        //    if (firmDetails == null)
+        //        return ApiResponse(false, "Firm details not found", error: "NotFound");
+
+        //    firmDetails.Address = dto.Address;
+        //    firmDetails.ContactNumber = dto.ContactNumber;
+        //    firmDetails.ContactPerson = dto.ContactPerson;
+        //    firmDetails.GstNumber = dto.GstNumber;
+        //    firmDetails.LogoImagePath = dto.LogoImagePath;
+        //    firmDetails.IsActive = dto.IsActive;
+        //    firmDetails.UpdatedAt = DateTime.Now;
+
+        //    await _context.SaveChangesAsync();
+
+        //    return ApiResponse(true, "Firm details updated successfully");
+        //}
     }
 }

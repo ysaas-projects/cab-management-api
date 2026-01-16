@@ -100,6 +100,8 @@ namespace cab_management.Models
         public string CabType { get; set; } = null!;    // ✅ NEW
 
         public int PricingRuleId { get; set; }
+        public string PricingRuleName { get; set; }   // ✅ ADD THIS
+
 
         public decimal Price { get; set; }
 

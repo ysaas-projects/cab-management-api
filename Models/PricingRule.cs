@@ -15,7 +15,7 @@ namespace cab_management.Models
 
         [Required]
         [StringLength(500)]
-        public string RoleDetails { get; set; }
+        public string RuleDetails { get; set; }
 
         public bool IsActive { get; set; } = true;
 
@@ -37,7 +37,7 @@ namespace cab_management.Models
         public int FirmId { get; set; }
         [Required]
         [StringLength(500)]
-        public string RoleDetails { get; set; }
+        public string RuleDetails { get; set; }
        
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
@@ -57,7 +57,7 @@ namespace cab_management.Models
 
 
         [StringLength(500)]
-        public string? RoleDetails { get; set; }
+        public string? RuleDetails { get; set; }
         public bool? IsActive { get; set; }
 
         public DateTime? UpdatedAt { get; set; }
@@ -68,7 +68,7 @@ namespace cab_management.Models
     {
         public int PricingRuleId { get; set; }
         public int FirmId { get; set; }
-        public string RoleDetails { get; set; }
+        public string RuleDetails { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime ? UpdatedAt { get; set; }

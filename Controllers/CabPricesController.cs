@@ -1,10 +1,17 @@
-﻿using cab_management.Data;
+﻿using System.Security.Claims;
+using cab_management.Data;
 using cab_management.Models;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace cab_management.Controllers
 {
+    [Authorize(AuthenticationSchemes =
+    CookieAuthenticationDefaults.AuthenticationScheme + "," +
+    JwtBearerDefaults.AuthenticationScheme)]
     [ApiController]
     [Route("api/[controller]")]
     public class CabPricesController : BaseApiController
@@ -20,31 +27,40 @@ namespace cab_management.Controllers
             _logger = logger;
         }
 
-        // =====================================================
-        // GET ALL CAB PRICES (FirmName + CabType)
-        // =====================================================
+        private int? GetFirmIdFromToken()
+        {
+            var firmIdStr = User.FindFirstValue("firmId");
+            if (int.TryParse(firmIdStr, out var firmId))
+                return firmId;
+
+            return null;
+        }
+
+
         [HttpGet]
         public async Task<IActionResult> GetCabPrices()
         {
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!", error: "Unauthorized", statusCode: 401);
+
                 var prices = await _context.CabPrices
-                    .Where(cp => !cp.IsDeleted)
                     .Include(cp => cp.Firm)
                     .Include(cp => cp.Cab)
+                    .Include(cp => cp.PricingRule)
+                    .Where(cp => cp.FirmId == firmId && !cp.IsDeleted)
                     .Select(cp => new CabPriceResponseDto
                     {
                         CabPriceId = cp.CabPriceId,
-
                         FirmId = cp.FirmId,
                         FirmName = cp.Firm.FirmName,
-
                         CabId = cp.CabId,
                         CabType = cp.Cab.CabType,
-
                         PricingRuleId = cp.PricingRuleId,
+                        PricingRuleName = cp.PricingRule.RuleDetails,
                         Price = cp.Price,
-
                         IsActive = cp.IsActive,
                         CreatedAt = cp.CreatedAt,
                         UpdatedAt = cp.UpdatedAt
@@ -56,35 +72,36 @@ namespace cab_management.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching cab prices");
-                return ApiResponse(false, "Error fetching cab prices", error: ex.Message);
+                return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
             }
         }
-
-        // =====================================================
-        // GET CAB PRICE BY ID
-        // =====================================================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCabPrice(int id)
         {
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!", error: "Unauthorized", statusCode: 401);
+
                 var price = await _context.CabPrices
-                    .Where(cp => cp.CabPriceId == id && !cp.IsDeleted)
                     .Include(cp => cp.Firm)
                     .Include(cp => cp.Cab)
+                    .Include(cp => cp.PricingRule)
+                    .Where(cp =>
+                        cp.CabPriceId == id &&
+                        cp.FirmId == firmId &&
+                        !cp.IsDeleted)
                     .Select(cp => new CabPriceResponseDto
                     {
                         CabPriceId = cp.CabPriceId,
-
                         FirmId = cp.FirmId,
                         FirmName = cp.Firm.FirmName,
-
                         CabId = cp.CabId,
                         CabType = cp.Cab.CabType,
-
                         PricingRuleId = cp.PricingRuleId,
+                        PricingRuleName = cp.PricingRule.RuleDetails,
                         Price = cp.Price,
-
                         IsActive = cp.IsActive,
                         CreatedAt = cp.CreatedAt,
                         UpdatedAt = cp.UpdatedAt
@@ -92,17 +109,16 @@ namespace cab_management.Controllers
                     .FirstOrDefaultAsync();
 
                 if (price == null)
-                    return ApiResponse(false, "Cab price not found", error: "NotFound");
+                    return ApiResponse(false, "Record not found", statusCode: 404);
 
-                return ApiResponse(true, "Cab price retrieved successfully", price);
+                return ApiResponse(true, "Cab price fetched successfully", price);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving cab price");
-                return ApiResponse(false, "Error retrieving cab price", error: ex.Message);
+                _logger.LogError(ex, "Error fetching cab price {CabPriceId}", id);
+                return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
             }
         }
-
         // =====================================================
         // CREATE CAB PRICE
         // =====================================================
@@ -111,39 +127,42 @@ namespace cab_management.Controllers
         {
             if (!ModelState.IsValid)
             {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
-
-                return ApiResponse(false, "Validation failed", errors: errors);
+                return ApiResponse(false, "Validation failed",
+                    errors: ModelState.Values.SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage).ToList(),
+                    statusCode: 400);
             }
 
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!", error: "Unauthorized", statusCode: 401);
+
                 var cabPrice = new CabPrice
                 {
-                    FirmId = dto.FirmId,
+                    FirmId = firmId.Value, // 🔥 FROM TOKEN
                     CabId = dto.CabId,
                     PricingRuleId = dto.PricingRuleId,
                     Price = dto.Price,
                     IsActive = dto.IsActive,
-                    CreatedAt = DateTime.Now,
-                    IsDeleted = false
+                    IsDeleted = false,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
                 _context.CabPrices.Add(cabPrice);
                 await _context.SaveChangesAsync();
 
-                return ApiResponse(true, "Cab price created successfully", new
+                return ApiResponse(true, "Record added successfully", new
                 {
                     cabPrice.CabPriceId
                 }, statusCode: 201);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating cab price");
-                return ApiResponse(false, "Error creating cab price", error: ex.Message);
+                _logger.LogError(ex, "Error in CreateCabPrice");
+                return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
             }
         }
 
@@ -155,18 +174,33 @@ namespace cab_management.Controllers
         {
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!", error: "Unauthorized", statusCode: 401);
+
                 var cabPrice = await _context.CabPrices
-                    .FirstOrDefaultAsync(cp => cp.CabPriceId == id && !cp.IsDeleted);
+                    .Where(cp =>
+                        cp.CabPriceId == id &&
+                        cp.FirmId == firmId &&
+                        !cp.IsDeleted)
+                    .FirstOrDefaultAsync();
 
                 if (cabPrice == null)
-                    return ApiResponse(false, "Cab price not found", error: "NotFound");
+                    return ApiResponse(false, "Record not found", statusCode: 404);
 
-                cabPrice.FirmId = dto.FirmId;
-                cabPrice.CabId = dto.CabId ?? cabPrice.CabId;
-                cabPrice.PricingRuleId = dto.PricingRuleId ?? cabPrice.PricingRuleId;
-                cabPrice.Price = dto.Price ?? cabPrice.Price;
-                cabPrice.IsActive = dto.IsActive ?? cabPrice.IsActive;
-                cabPrice.UpdatedAt = DateTime.Now;
+                if (dto.CabId.HasValue)
+                    cabPrice.CabId = dto.CabId.Value;
+
+                if (dto.PricingRuleId.HasValue)
+                    cabPrice.PricingRuleId = dto.PricingRuleId.Value;
+
+                if (dto.Price.HasValue)
+                    cabPrice.Price = dto.Price.Value;
+
+                if (dto.IsActive.HasValue)
+                    cabPrice.IsActive = dto.IsActive.Value;
+
+                cabPrice.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
 
@@ -174,10 +208,11 @@ namespace cab_management.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating cab price");
-                return ApiResponse(false, "Error updating cab price", error: ex.Message);
+                _logger.LogError(ex, "Error in UpdateCabPrice {CabPriceId}", id);
+                return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
             }
         }
+
 
         // =====================================================
         // DELETE CAB PRICE (SOFT DELETE)
@@ -187,24 +222,32 @@ namespace cab_management.Controllers
         {
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!", error: "Unauthorized", statusCode: 401);
+
                 var cabPrice = await _context.CabPrices
-                    .FirstOrDefaultAsync(cp => cp.CabPriceId == id && !cp.IsDeleted);
+                    .Where(cp =>
+                        cp.CabPriceId == id &&
+                        cp.FirmId == firmId &&
+                        !cp.IsDeleted)
+                    .FirstOrDefaultAsync();
 
                 if (cabPrice == null)
-                    return ApiResponse(false, "Cab price not found", error: "NotFound");
+                    return ApiResponse(false, "Record not found", statusCode: 404);
 
                 cabPrice.IsDeleted = true;
                 cabPrice.IsActive = false;
-                cabPrice.UpdatedAt = DateTime.Now;
+                cabPrice.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
 
-                return ApiResponse(true, "Cab price deleted successfully");
+                return ApiResponse(true, "Record deleted successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting cab price");
-                return ApiResponse(false, "Error deleting cab price", error: ex.Message);
+                _logger.LogError(ex, "Error in DeleteCabPrice {CabPriceId}", id);
+                return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
             }
         }
     }
