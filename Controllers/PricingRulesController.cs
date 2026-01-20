@@ -39,7 +39,7 @@ namespace cab_management.Controllers
                     {
                         PricingRuleId = r.PricingRuleId,
                         FirmId = r.FirmId,
-                        RoleDetails = r.RoleDetails,
+                        RuleDetails = r.RuleDetails,
                         IsActive = r.IsActive,
                         IsDeleted = r.IsDeleted,
                         CreatedAt = r.CreatedAt,
@@ -70,7 +70,7 @@ namespace cab_management.Controllers
                     {
                         PricingRuleId = r.PricingRuleId,
                         FirmId = r.FirmId,
-                        RoleDetails = r.RoleDetails,
+                        RuleDetails = r.RuleDetails,
                         IsActive = r.IsActive,
                         IsDeleted = r.IsDeleted,
                         CreatedAt = r.CreatedAt,
@@ -110,7 +110,7 @@ namespace cab_management.Controllers
                 var rule = new PricingRule
                 {
                     FirmId = dto.FirmId,              // ✅ FirmId comes from request
-                    RoleDetails = dto.RoleDetails,
+                    RuleDetails = dto.RuleDetails,
                     IsActive = dto.IsActive,
                     CreatedAt = DateTime.Now,
                     IsDeleted = false
@@ -144,7 +144,7 @@ namespace cab_management.Controllers
                
                 rule.FirmId = dto.FirmId;
 
-                rule.RoleDetails = dto.RoleDetails ?? rule.RoleDetails;
+                rule.RuleDetails = dto.RuleDetails ?? rule.RuleDetails;
                 rule.IsActive = dto.IsActive ?? rule.IsActive;
                 rule.UpdatedAt = DateTime.Now;
 

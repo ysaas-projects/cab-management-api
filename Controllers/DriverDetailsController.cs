@@ -1,196 +1,238 @@
 ﻿using cab_management.Data;
 using DriverDetails.Models;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using System.Security.Claims;
 
 namespace cab_management.Controllers
 {
+    [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme + "," + JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
     [ApiController]
     public class DriverDetailsController : BaseApiController
     {
-        ApplicationDbContext _context;
+        private readonly ApplicationDbContext _context;
+
         public DriverDetailsController(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        // ------------------------------
-        // GET ALL DRIVER DETAILS
-        // ------------------------------
+        // ==============================
+        // TOKEN HELPERS
+        // ==============================
+        private int? GetFirmIdFromToken()
+        {
+            var firmIdStr = User.FindFirstValue("firmId");
+            return int.TryParse(firmIdStr, out var id) ? id : null;
+        }
 
+        private int? GetUserIdFromToken()
+        {
+            var userIdStr =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("userId");
+
+            return int.TryParse(userIdStr, out var id) ? id : null;
+        }
+
+        // ==============================
+        // GET ALL DRIVERS
+        // ==============================
         [HttpGet]
         public async Task<IActionResult> GetDriverDetails()
-        {
+         {
             try
             {
-                var DriverDetails = await _context.DriverDetails
-                .Where(c => c.IsDeleted != true)
-                .ToListAsync();
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return Unauthorized("FirmId not found in token");
 
-                return ApiResponse(true, "DriverDetails Fetched Successfully", DriverDetails);
+                var drivers = await _context.DriverDetails
+                    .Where(d => d.IsDeleted== false && d.FirmId == firmId)
+                    .Include(d => d.Firm)
+                    .Include(d => d.User)
+                    .Select(d => new DriverDetailResponseDTO
+                    {
+                        DriverDetailId = d.DriverDetailId,
+                        DriverName = d.DriverName,
+                        MobileNumber = d.MobileNumber,
+                        IsActive = d.IsActive,
+                        FirmName = d.Firm.FirmName,
+                        UserName = d.User.UserName,
+                        CreatedAt = d.CreatedAt,
+                        UpdatedAt = d.UpdatedAt
+                    })
+                    .ToListAsync();
+
+                return ApiResponse(true, "DriverDetails fetched successfully", drivers);
             }
             catch (Exception ex)
             {
-                return ApiResponse(false, "Errror", ex.Message);
+                return ApiResponse(false, "Error", ex.Message);
             }
         }
 
-        // ------------------------------
-        //GET DRIVER DETAILS BY ID
-        // ------------------------------
-
-        [HttpGet]
-        [Route("{id}")]
-        public async Task<IActionResult> GetDriverDetailsByID(int id)
+        // ==============================
+        // GET DRIVER BY ID
+        // ==============================
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetDriverDetailsById(int id)
         {
             try
             {
-                var driverDetail = _context.DriverDetails.FirstOrDefault(d => d.DriverDetailId.Equals(id) && d.IsDeleted.Equals(false));
-                if (driverDetail != null)
-                {
-                    return ApiResponse(true, "DriverDetail Fetched Successfully", driverDetail);
-                }
-                else
-                {
-                    return ApiResponse(false, "DriverDetail Not Found", 404);
-                }
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return Unauthorized("FirmId not found in token");
+
+                var driver = await _context.DriverDetails
+                    .Where(d =>
+                        d.DriverDetailId == id &&
+                        d.IsDeleted==false &&
+                        d.FirmId == firmId)
+                    .Include(d => d.Firm)
+                    .Include(d => d.User)
+                    .Select(d => new DriverDetailResponseDTO
+                    {
+                        DriverDetailId = d.DriverDetailId,
+                        //FirmId = d.FirmId,
+                        FirmName = d.Firm.FirmName,
+                        //UserId = d.UserId,
+                        UserName = d.User.UserName,
+                        DriverName = d.DriverName,
+                        MobileNumber = d.MobileNumber,
+                        IsActive = d.IsActive,
+                        CreatedAt = d.CreatedAt,
+                        UpdatedAt = d.UpdatedAt
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (driver == null)
+                    return ApiResponse(false, "Driver not found", null);
+
+                return ApiResponse(true, "Driver fetched successfully", driver);
             }
             catch (Exception ex)
             {
-                return ApiResponse(false, "Errror", ex.Message);
+                return ApiResponse(false, "Error", ex.Message);
             }
         }
 
-        // ------------------------------
-        // CREATE DRIVER DETAILS
-        // ------------------------------
-
+        // ==============================
+        // CREATE DRIVER
+        // ==============================
         [HttpPost]
         public async Task<IActionResult> CreateDriverDetails([FromBody] AddDriverDetailDTO dto)
         {
             try
             {
                 if (!ModelState.IsValid)
-                {
-                    var errors = ModelState.Values
-                        .SelectMany(v => v.Errors)
-                        .Select(x => x.ErrorMessage)
-                        .ToList();
+                    return ApiResponse(false, "Validation failed", ModelState);
 
-                    return ApiResponse(false, "Validation Failed", errors);
-                }
+                var firmId = GetFirmIdFromToken();
+                var userId = GetUserIdFromToken();
 
-                DriverDetail driverDetail = new DriverDetail()
+                if (firmId == null || userId == null)
+                    return Unauthorized("Invalid token");
+
+                var driver = new DriverDetail
                 {
-                    FirmId = dto.FirmId,
-                    UserId = dto.UserId,
+                    FirmId = firmId.Value,
+                    UserId = userId.Value,
                     DriverName = dto.DriverName,
                     MobileNumber = dto.MobileNumber,
                     IsActive = dto.IsActive,
-                    CreatedAt = DateTime.Now,
+                    CreatedAt = DateTime.UtcNow,
                     IsDeleted = false
                 };
-                await _context.DriverDetails.AddAsync(driverDetail);
+
+                await _context.DriverDetails.AddAsync(driver);
                 await _context.SaveChangesAsync();
-                return ApiResponse(false, "DriverDetails Added Successfully", driverDetail);
+
+                return ApiResponse(true, "Driver created successfully", driver);
             }
             catch (Exception ex)
             {
-                return ApiResponse(false, "Something Went Wrong", ex.Message);
+                return ApiResponse(false, "Something went wrong", ex.Message);
             }
         }
 
-        // ------------------------------
-        // UPDATE DRIVER DETAILS
-        // ------------------------------
-
-        [HttpPut]
-        [Route("{id}")]
+        // ==============================
+        // UPDATE DRIVER
+        // ==============================
+        [HttpPut("{id}")]
         public async Task<IActionResult> UpdateDriverDetails(int id, [FromBody] UpdateDriverDetailDTO dto)
         {
             try
             {
                 if (!ModelState.IsValid)
-                {
-                    var errorlst = ModelState.Values
-                        .SelectMany(v => v.Errors)
-                        .Select(x => x.ErrorMessage)
-                        .ToList();
+                    return ApiResponse(false, "Validation failed", ModelState);
 
-                    return ApiResponse(false, "Validation Failed");
-                }
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return Unauthorized("FirmId not found in token");
 
-                var driverDetail = _context.DriverDetails.FirstOrDefault(d => d.DriverDetailId.Equals(id) && d.IsDeleted.Equals(false));
-                //if (driverDetail != null) ;
+                var driver = await _context.DriverDetails
+                    .FirstOrDefaultAsync(d =>
+                        d.DriverDetailId == id &&
+                        d.IsDeleted == false&&
+                        d.FirmId == firmId);
 
-                if (driverDetail == null)
-                {
-                    return ApiResponse(false, "Record Not Found", null);
-                }
-                driverDetail.UserId = dto.UserId;
-                driverDetail.FirmId = dto.FirmId;
-                driverDetail.MobileNumber = dto.MoblieNumber;
-                driverDetail.DriverName = dto.DriverName;
-                driverDetail.IsActive = dto.IsActive;
-                driverDetail.IsDeleted = dto.IsDeleted;
-                driverDetail.UpdatedAt = DateTime.Now;
+                if (driver == null)
+                    return ApiResponse(false, "Record not found", null);
+
+                driver.DriverName = dto.DriverName ?? driver.DriverName;
+                driver.MobileNumber = dto.MobileNumber ?? driver.MobileNumber;
+                driver.IsActive = dto.IsActive ?? driver.IsActive;
+                driver.UpdatedAt = DateTime.UtcNow;
+
+
 
                 await _context.SaveChangesAsync();
 
-                return ApiResponse(
-                    success: true,
-                    message: "DriverDetails Updated Successfully",
-                    data: driverDetail
-                );
+                return ApiResponse(true, "Driver updated successfully", driver);
             }
             catch (Exception ex)
             {
-                return ApiResponse(false, "Something Went Wrong", ex.Message);
+                return ApiResponse(false, "Something went wrong", ex.Message);
             }
         }
 
-        // ------------------------------
-        // DELETE DRIVER DETAILS
-        // ------------------------------
-
-        [HttpDelete]
-        [Route("{id}")]
+        // ==============================
+        // DELETE DRIVER (SOFT)
+        // ==============================
+        [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDriverDetails(int id)
         {
             try
             {
-                var driverDetails = await _context.DriverDetails
-                .FirstOrDefaultAsync(d => d.DriverDetailId.Equals(id) && d.IsDeleted.Equals(false));
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return Unauthorized("FirmId not found in token");
 
-                if (driverDetails == null)
-                {
-                    return ApiResponse(
-                        success: false,
-                        message: "Record Not Found",
-                        statusCode: 400
-                        );
-                }
-                else
-                {
-                    driverDetails.IsDeleted = true;
-                    _context.SaveChanges();
+                var driver = await _context.DriverDetails
+                    .FirstOrDefaultAsync(d =>
+                        d.DriverDetailId == id &&
+                        d.IsDeleted == false &&
+                        d.FirmId == firmId);
 
-                }
-                return ApiResponse(
-                    success: true,
-                    message: "DriverDetails Deleted Successfully"
-                    );
+                if (driver == null)
+                    return ApiResponse(false, "Record not found", null);
+
+                driver.IsDeleted = true;
+                driver.UpdatedAt = DateTime.UtcNow;
+
+
+                await _context.SaveChangesAsync();
+
+                return ApiResponse(true, "Driver deleted successfully");
             }
             catch (Exception ex)
             {
-                return ApiResponse(
-                    success: false,
-                    message: "Something Went Wrong",
-                    error: ex.Message,
-                    statusCode: 500
-                    );
+                return ApiResponse(false, "Something went wrong", ex.Message);
             }
         }
     }

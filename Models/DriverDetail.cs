@@ -1,79 +1,72 @@
-﻿using System;
+﻿using cab_management.Models;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace DriverDetails.Models;
-
-// =====================================================
-// DRIVERDETAILS (DB TABLE)
-// =====================================================
-public partial class DriverDetail
+namespace DriverDetails.Models
 {
-    public int DriverDetailId { get; set; }
 
-    public int? FirmId { get; set; }
+    public class DriverDetail
+    {
+        public int DriverDetailId { get; set; }
 
-    public int? UserId { get; set; }
+        [ForeignKey(nameof(Firm))]
+        public int FirmId { get; set; }
 
-    public string? DriverName { get; set; }
+        [ForeignKey(nameof(User))]
+        public int UserId { get; set; }
 
-    public string? MobileNumber { get; set; }
+        public string DriverName { get; set; }
+        public string MobileNumber { get; set; }
+        public bool IsActive { get; set; }
 
-    public bool? IsActive { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
+        public bool IsDeleted { get; set; } = false;
 
-    public DateTime? CreatedAt { get; set; } = DateTime.Now;
+        public Firm Firm { get; set; }
+        public User User { get; set; }
+    }
 
-    public DateTime? UpdatedAt { get; set; }
+    // ======================
+    // CREATE DTO
+    // ======================
+    public class AddDriverDetailDTO
+    {
+        [Required]
+        public string DriverName { get; set; }
 
-    public bool? IsDeleted { get; set; }
-}
+        [Required]
+        [StringLength(13)]
+        public string MobileNumber { get; set; }
 
-// =====================================================
-// CREATE DRIVER DETAILS DTO
-// =====================================================
-public class AddDriverDetailDTO
-{
-    [Required]
-    [Range(1, int.MaxValue, ErrorMessage = "FirmID must be greater than 0.")]
-    public int? FirmId { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
 
-    [Required]
-    [Range(1, int.MaxValue, ErrorMessage = "UserId must be greater than 0.")]
-    public int? UserId { get; set; }
+    // ======================
+    // UPDATE DTO
+    // ======================
+    public class UpdateDriverDetailDTO
+    {
+        public string DriverName { get; set; }
+        public string MobileNumber { get; set; }
+        public bool? IsActive { get; set; }
+    }
 
-    [Required(ErrorMessage = "DriverName is Requried")]
-    public string? DriverName { get; set; }
+    // ======================
+    // RESPONSE DTO
+    // ======================
+    public class DriverDetailResponseDTO
+    {
+        public int DriverDetailId { get; set; }
+        public string DriverName { get; set; }
+        public string MobileNumber { get; set; }
+        public bool IsActive { get; set; }
+        public string FirmName { get; set; }
+        public string UserName { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+    }
 
-    [Required(ErrorMessage = "Mobile Number is Requried")]
-    [StringLength(13, ErrorMessage = "Mobile Number must be in 13")]
-    public string? MobileNumber { get; set; }
-    public bool? IsActive { get; set; }
-    public DateTime? CreatedAt { get; set; } = DateTime.Now;
-    public bool? IsDeleted { get; set; }
-}
-
-// =====================================================
-// UPDATE DRIVER DETAILS DTO
-// =====================================================
-public class UpdateDriverDetailDTO
-{
-    public int DriverDetailId { get; set; }
-
-    [Required]
-    [Range(1, int.MaxValue, ErrorMessage = "FirmID must be greater than 0.")]
-    public int? FirmId { get; set; }
-
-    [Required]
-    [Range(1, int.MaxValue, ErrorMessage = "UserId must be greater than 0.")]
-    public int? UserId { get; set; }
-
-    [Required(ErrorMessage = "DriverName is Requried")]
-    public string? DriverName { get; set; }
-
-    //[Required(ErrorMessage = "Mobile Number is Requried")]
-    //[StringLength(13, ErrorMessage = "Mobile Number must be in 13")]
-    public string? MoblieNumber { get; set; }
-    public bool? IsActive { get; set; }
-    public DateTime? UpdatedAt { get; set; } = DateTime.Now;
-    public bool? IsDeleted { get; set; }
 }

@@ -14,3 +14,7 @@ CREATE TABLE PricingRules
 );
 
 
+EXEC sp_rename 
+    'PricingRules.RoleDetails',
+    'RuleDetails',
+    'COLUMN';

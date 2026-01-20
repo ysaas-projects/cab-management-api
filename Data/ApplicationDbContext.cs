@@ -40,6 +40,7 @@ namespace cab_management.Data
         public DbSet<InvoiceItem> InvoiceItems { get; set; }
         public DbSet<CabNumberDirectory> CabNumberDirectory { get; set; }
 
+
         // =========================
         // MODEL CONFIGURATION
         // =========================

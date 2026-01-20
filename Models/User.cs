@@ -22,6 +22,7 @@ namespace cab_management.Models
         [RegularExpression(@"^[a-zA-Z0-9@_\-\.]+$", ErrorMessage = "Username can only contain letters, numbers, and @ _ - .")]
         public string UserName { get; set; }
 
+
         [StringLength(255, MinimumLength = 3, ErrorMessage = "Minimum 3 characters are required")]
         [Required(ErrorMessage = "Password is required")]
         public string PasswordHash { get; set; }
@@ -30,6 +31,7 @@ namespace cab_management.Models
         //[Required(ErrorMessage = "Email is required")]
         [EmailAddress(ErrorMessage = "Invalid Email Address")]
         public string? Email { get; set; }
+        public bool EmailConfirmed { get; set; } = false;
 
         [StringLength(20)]
         //[Required(ErrorMessage = "Mobile Number is required")]
@@ -122,5 +124,20 @@ namespace cab_management.Models
         public string? FirmType { get; set; }
 
         public bool IsActive { get; set; }
+    }
+
+    public class UserResponseDto
+    {
+        public int UserId { get; set; }
+        public int? FirmId { get; set; }
+        public string? FirmType { get; set; }
+        public string UserName { get; set; } = null!;
+        public string? Email { get; set; }
+        public bool EmailConfirmed { get; set; }
+        public string? MobileNumber { get; set; }
+        public bool MobileNumberConfirmed { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? LastLoginAt { get; set; }
     }
 }
