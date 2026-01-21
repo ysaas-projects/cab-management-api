@@ -5,10 +5,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace cab_management.Controllers
 {
-
+    [Authorize(AuthenticationSchemes =
+        JwtBearerDefaults.AuthenticationScheme + "," +
+        CookieAuthenticationDefaults.AuthenticationScheme)]
     [ApiController]
     [Route("api/[controller]")]
     public class PricingRulesController : BaseApiController
@@ -24,30 +27,52 @@ namespace cab_management.Controllers
             _logger = logger;
         }
 
+        // ================================
+        // GET FirmId from Token
+        // ================================
+        private int? GetFirmIdFromToken()
+        {
+            var firmIdStr = User.FindFirstValue("firmId");
+            return int.TryParse(firmIdStr, out var firmId)
+                ? firmId
+                : null;
+        }
 
-        //=========================================
-        //  GET ALL PRICING RULES
-        //=========================================
+        // ================================
+        // GET ALL PRICING RULES (BY FIRM)
+        // ================================
         [HttpGet]
         public async Task<IActionResult> GetPricingRules()
         {
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return Unauthorized();
+
                 var rules = await _context.PricingRules
-                    .Where(r => !r.IsDeleted)
+                 .Include(r => r.Firm) 
+                    .Where(r =>
+                        r.FirmId == firmId &&
+                        !r.IsDeleted)
+                    .OrderByDescending(r => r.CreatedAt)
                     .Select(r => new PricingRuleResponseDto
                     {
                         PricingRuleId = r.PricingRuleId,
                         FirmId = r.FirmId,
+                        FirmName = r.Firm.FirmName, // ✅ DISPLAY
                         RuleDetails = r.RuleDetails,
                         IsActive = r.IsActive,
-                        IsDeleted = r.IsDeleted,
                         CreatedAt = r.CreatedAt,
                         UpdatedAt = r.UpdatedAt
                     })
                     .ToListAsync();
 
-                return ApiResponse(true, "Pricing rules retrieved successfully", rules);
+                return ApiResponse(
+                    true,
+                    "Pricing rules retrieved successfully",
+                    rules
+                );
             }
             catch (Exception ex)
             {
@@ -56,23 +81,33 @@ namespace cab_management.Controllers
             }
         }
 
-        //=========================================
-        //  GET BY ID PRICING RULES
-        //=========================================
+        // ================================
+        // GET PRICING RULE BY ID (BY FIRM)
+        // ================================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPricingRule(int id)
         {
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return Unauthorized();
+
                 var rule = await _context.PricingRules
-                    .Where(r => r.PricingRuleId == id && !r.IsDeleted)
+                                     .Include(r => r.Firm)
+
+                    .Where(r =>
+                        r.PricingRuleId == id &&
+                        r.FirmId == firmId &&
+                        !r.IsDeleted)
                     .Select(r => new PricingRuleResponseDto
                     {
                         PricingRuleId = r.PricingRuleId,
                         FirmId = r.FirmId,
+                        FirmName = r.Firm.FirmName, // ✅ DISPLAY
+
                         RuleDetails = r.RuleDetails,
                         IsActive = r.IsActive,
-                        IsDeleted = r.IsDeleted,
                         CreatedAt = r.CreatedAt,
                         UpdatedAt = r.UpdatedAt
                     })
@@ -89,27 +124,34 @@ namespace cab_management.Controllers
             }
         }
 
-
-        //=========================================
-        //  CREATE PRICING RULES
-        // =========================================
+        // ================================
+        // CREATE PRICING RULE (BY FIRM)
+        // ================================
         [HttpPost]
-        public async Task<IActionResult> CreatePricingRule([FromBody] CreatePricingRuleDto dto)
+        public async Task<IActionResult> CreatePricingRule(
+            [FromBody] CreatePricingRuleDto dto)
         {
             if (!ModelState.IsValid)
             {
-                return ApiResponse(false, "Validation failed",
+                return ApiResponse(
+                    false,
+                    "Validation failed",
                     errors: ModelState.Values
                         .SelectMany(v => v.Errors)
                         .Select(e => e.ErrorMessage)
-                        .ToList());
+                        .ToList()
+                );
             }
 
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return Unauthorized();
+
                 var rule = new PricingRule
                 {
-                    FirmId = dto.FirmId,              // ✅ FirmId comes from request
+                    FirmId = firmId.Value,
                     RuleDetails = dto.RuleDetails,
                     IsActive = dto.IsActive,
                     CreatedAt = DateTime.Now,
@@ -119,7 +161,12 @@ namespace cab_management.Controllers
                 _context.PricingRules.Add(rule);
                 await _context.SaveChangesAsync();
 
-                return ApiResponse(true, "Pricing rule created successfully", rule, statusCode: 201);
+                return ApiResponse(
+                    true,
+                    "Pricing rule created successfully",
+                    rule,
+                    statusCode: 201
+                );
             }
             catch (Exception ex)
             {
@@ -127,22 +174,29 @@ namespace cab_management.Controllers
             }
         }
 
-        //=========================================
-        // UPDATE PRICING RULES
-        //=========================================
+        // ================================
+        // UPDATE PRICING RULE (BY FIRM)
+        // ================================
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePricingRule(int id, [FromBody] UpdatePricingRuleDto dto)
+        public async Task<IActionResult> UpdatePricingRule(
+            int id,
+            [FromBody] UpdatePricingRuleDto dto)
         {
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return Unauthorized();
+
                 var rule = await _context.PricingRules
-                    .Where(r => r.PricingRuleId == id && !r.IsDeleted)
+                    .Where(r =>
+                        r.PricingRuleId == id &&
+                        r.FirmId == firmId &&
+                        !r.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (rule == null)
                     return ApiResponse(false, "Pricing rule not found", error: "Not Found");
-
-                rule.FirmId = dto.FirmId;
 
                 rule.RuleDetails = dto.RuleDetails ?? rule.RuleDetails;
                 rule.IsActive = dto.IsActive ?? rule.IsActive;
@@ -158,16 +212,23 @@ namespace cab_management.Controllers
             }
         }
 
-        //=========================================
-        //  DELETE PRICING RULES
-        //=========================================
+        // ================================
+        // DELETE PRICING RULE (SOFT DELETE)
+        // ================================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePricingRule(int id)
         {
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return Unauthorized();
+
                 var rule = await _context.PricingRules
-                    .Where(r => r.PricingRuleId == id && !r.IsDeleted)
+                    .Where(r =>
+                        r.PricingRuleId == id &&
+                        r.FirmId == firmId &&
+                        !r.IsDeleted)
                     .FirstOrDefaultAsync();
 
                 if (rule == null)

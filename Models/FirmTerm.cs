@@ -57,4 +57,18 @@ namespace cab_management.Models
         public bool IsActive { get; set; } = true;
     }
 
+    public class FirmTermResponseDto
+    {
+        public int FirmTermId { get; set; }
+        public int FirmId { get; set; }
+        public string FirmName { get; set; } = string.Empty;
+
+        public string Description { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+    }
+
+
 }

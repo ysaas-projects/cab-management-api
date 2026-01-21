@@ -11,6 +11,7 @@ namespace cab_management.Models
         public int PricingRuleId { get; set; }
 
         [Required]
+        [ForeignKey(nameof(Firm))]
         public int FirmId { get; set; }
 
         [Required]
@@ -24,7 +25,8 @@ namespace cab_management.Models
         public DateTime? UpdatedAt { get; set; }
 
         public bool IsDeleted { get; set; } = false;
-        
+
+        public virtual Firm Firm { get; set; } = null!;
 
 
     }
@@ -67,7 +69,10 @@ namespace cab_management.Models
     public class PricingRuleResponseDto
     {
         public int PricingRuleId { get; set; }
+
         public int FirmId { get; set; }
+        public string FirmName { get; set; }   // ✅ DISPLAY THIS
+
         public string RuleDetails { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }

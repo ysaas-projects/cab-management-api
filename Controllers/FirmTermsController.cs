@@ -1,198 +1,273 @@
-﻿using cab_management.Data;
+﻿using System.Security.Claims;
+using cab_management.Data;
 using cab_management.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace cab_management.Controllers
 {
-    [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes =
+        CookieAuthenticationDefaults.AuthenticationScheme + "," +
+        JwtBearerDefaults.AuthenticationScheme)]
     [ApiController]
+    [Route("api/[controller]")]
     public class FirmTermsController : BaseApiController
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<FirmTermsController> _logger;
 
-        public FirmTermsController(ApplicationDbContext context)
+        public FirmTermsController(
+            ApplicationDbContext context,
+            ILogger<FirmTermsController> logger)
         {
-            _context = context;  
+            _context = context;
+            _logger = logger;
         }
 
+        // =====================================================
+        // GET FIRM ID FROM TOKEN
+        // =====================================================
+        private int? GetFirmIdFromToken()
+        {
+            var firmIdStr = User.FindFirstValue("firmId");
+            if (int.TryParse(firmIdStr, out var firmId))
+                return firmId;
 
-        // ==============================
-        // GET ALL FIRM TERMS
-        // ==============================
+            return null;
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetFirmTerms()
         {
-            var terms = await _context.FirmTerms
-                .Where(ft => !ft.IsDeleted)
-                .OrderByDescending(ft => ft.CreatedAt)
-                .ToListAsync();
+            try
+            {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!",
+                        error: "Unauthorized", statusCode: 401);
 
-            return ApiResponse(true, "Firm terms retrieved successfully", terms);
+                var terms = await _context.FirmTerms
+                    .Include(ft => ft.Firm)
+                    .Where(ft =>
+                        ft.FirmId == firmId &&
+                        !ft.IsDeleted)
+                    .OrderByDescending(ft => ft.CreatedAt)
+                    .Select(ft => new FirmTermResponseDto
+                    {
+                        FirmTermId = ft.FirmTermId,
+                        FirmId = ft.FirmId,
+                        FirmName = ft.Firm.FirmName,
+
+                        Description = ft.Description,
+                        IsActive = ft.IsActive,
+                        CreatedAt = ft.CreatedAt,
+                        UpdatedAt = ft.UpdatedAt
+                    })
+                    .ToListAsync();
+
+                return ApiResponse(true, "Firm terms fetched successfully", terms);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching firm terms");
+                return ApiResponse(false, "Something went wrong",
+                    error: ex.Message, statusCode: 500);
+            }
         }
 
-        // =============================
-        // GET BY FIRM TERMS ID
-        // =============================
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetFirmTermsById(int id)
-        {
-            var term = await _context.FirmTerms
-                .FirstOrDefaultAsync(ft => ft.FirmTermId == id && !ft.IsDeleted);
-
-            if (term == null)
-                return ApiResponse(false, "Firm term not found", error: "NotFound");
-
-            return ApiResponse(true, "Firm term retrieved successfully", term);
-        }
-
-        // ==============================
-        // CREATE FIRM TERMS
-        // ==============================
-        [Authorize(AuthenticationSchemes =
-            JwtBearerDefaults.AuthenticationScheme + "," +
-            CookieAuthenticationDefaults.AuthenticationScheme)]
-        [HttpPost]
-        public async Task<IActionResult> CreateFirmTerm([FromBody] CreateFirmTermDto dto)
+        public async Task<IActionResult> GetFirmTerm(int id)
         {
             try
             {
-                if (!ModelState.IsValid)
-                    return ApiResponse(false, "Invalid data");
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!",
+                        error: "Unauthorized", statusCode: 401);
 
-                bool firmExists = await _context.Firms
-                    .AnyAsync(f => f.FirmId == dto.FirmId && !f.IsDeleted);
+                var term = await _context.FirmTerms
+                    .Include(ft => ft.Firm)
+                    .Where(ft =>
+                        ft.FirmTermId == id &&
+                        ft.FirmId == firmId &&
+                        !ft.IsDeleted)
+                    .Select(ft => new FirmTermResponseDto
+                    {
+                        FirmTermId = ft.FirmTermId,
+                        FirmId = ft.FirmId,
+                        FirmName = ft.Firm.FirmName,
 
-                if (!firmExists)
-                    return ApiResponse(false, "Invalid FirmId", error: "BadRequest");
+                        Description = ft.Description,
+                        IsActive = ft.IsActive,
+                        CreatedAt = ft.CreatedAt,
+                        UpdatedAt = ft.UpdatedAt
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (term == null)
+                    return ApiResponse(false, "Record not found", statusCode: 404);
+
+                return ApiResponse(true, "Firm term fetched successfully", term);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching firm term {FirmTermId}", id);
+                return ApiResponse(false, "Something went wrong",
+                    error: ex.Message, statusCode: 500);
+            }
+        }
+
+        // =====================================================
+        // CREATE FIRM TERM
+        // =====================================================
+        [HttpPost]
+        public async Task<IActionResult> CreateFirmTerm([FromBody] CreateFirmTermDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return ApiResponse(false, "Validation failed",
+                    errors: ModelState.Values.SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage).ToList(),
+                    statusCode: 400);
+            }
+
+            try
+            {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!",
+                        error: "Unauthorized", statusCode: 401);
 
                 bool duplicate = await _context.FirmTerms.AnyAsync(ft =>
-                    ft.FirmId == dto.FirmId &&
+                    ft.FirmId == firmId &&
                     ft.Description.ToLower() == dto.Description.ToLower() &&
                     !ft.IsDeleted);
 
                 if (duplicate)
-                    return ApiResponse(false, "Firm term already exists for this firm", error: "Duplicate");
+                    return ApiResponse(false,
+                        "Firm term already exists",
+                        error: "Duplicate",
+                        statusCode: 409);
 
-                var firmTerm = new FirmTerm
+                var term = new FirmTerm
                 {
-                    FirmId = dto.FirmId,
+                    FirmId = firmId.Value,   // 🔥 FROM TOKEN
                     Description = dto.Description.Trim(),
                     IsActive = dto.IsActive,
-                    CreatedAt = DateTime.Now,
-                    IsDeleted = false
+                    IsDeleted = false,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
-                _context.FirmTerms.Add(firmTerm);
+                _context.FirmTerms.Add(term);
                 await _context.SaveChangesAsync();
 
                 return ApiResponse(true, "Firm term created successfully", new
                 {
-                    firmTerm.FirmTermId,
-                    firmTerm.FirmId,
-                    firmTerm.Description,
-                    firmTerm.IsActive
-                });
+                    term.FirmTermId
+                }, statusCode: 201);
             }
             catch (Exception ex)
             {
-                return ApiResponse(false, "Something went wrong", error: ex.Message);
+                _logger.LogError(ex, "Error creating firm term");
+                return ApiResponse(false, "Something went wrong",
+                    error: ex.Message, statusCode: 500);
             }
         }
 
-        // ==============================
-        // UPDATE FIRM TERMS
-        // ==============================
+        // =====================================================
+        // UPDATE FIRM TERM
+        // =====================================================
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateFirmTerm(int id, [FromBody] UpdateFirmTermDto dto)
         {
             try
             {
-                if (!ModelState.IsValid)
-                    return ApiResponse(false, "Invalid data");
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!",
+                        error: "Unauthorized", statusCode: 401);
 
                 var term = await _context.FirmTerms
-                    .FirstOrDefaultAsync(ft => ft.FirmTermId == id && !ft.IsDeleted);
+                    .Where(ft =>
+                        ft.FirmTermId == id &&
+                        ft.FirmId == firmId &&
+                        !ft.IsDeleted)
+                    .FirstOrDefaultAsync();
 
                 if (term == null)
-                    return ApiResponse(false, "Firm term not found", error: "NotFound");
+                    return ApiResponse(false, "Record not found", statusCode: 404);
 
                 string newDescription = dto.Description.Trim();
 
-                bool duplicate = await _context.FirmTerms
-                    .AnyAsync(ft =>
-                        ft.FirmId == term.FirmId &&
-                        ft.FirmTermId != id &&
-                        ft.Description.Trim().ToLower() == newDescription.ToLower() &&
-                        !ft.IsDeleted);
+                bool duplicate = await _context.FirmTerms.AnyAsync(ft =>
+                    ft.FirmId == firmId &&
+                    ft.FirmTermId != id &&
+                    ft.Description.ToLower() == newDescription.ToLower() &&
+                    !ft.IsDeleted);
 
                 if (duplicate)
-                    return ApiResponse(false, "Firm term already exists for this firm", error: "Duplicate");
+                    return ApiResponse(false,
+                        "Firm term already exists",
+                        error: "Duplicate",
+                        statusCode: 409);
 
                 term.Description = newDescription;
                 term.IsActive = dto.IsActive;
-                term.UpdatedAt = DateTime.Now;
+                term.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
 
-                return ApiResponse(true, "Firm term updated successfully", new
-                {
-                    term.FirmTermId,
-                    term.FirmId,
-                    term.Description,
-                    term.IsActive
-                });
+                return ApiResponse(true, "Firm term updated successfully");
             }
             catch (Exception ex)
             {
-                return ApiResponse(false, "Something went wrong", error: ex.Message);
+                _logger.LogError(ex, "Error updating firm term {FirmTermId}", id);
+                return ApiResponse(false, "Something went wrong",
+                    error: ex.Message, statusCode: 500);
             }
         }
 
-
-        // ==============================
-        // DELETE (SOFT DELETE)
-        // ==============================
-        [Authorize(AuthenticationSchemes =
-            JwtBearerDefaults.AuthenticationScheme + "," +
-            CookieAuthenticationDefaults.AuthenticationScheme)]
+        // =====================================================
+        // DELETE FIRM TERM (SOFT DELETE)
+        // =====================================================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteFirmTerm(int id)
         {
-            var term = await _context.FirmTerms
-                .FirstOrDefaultAsync(ft => ft.FirmTermId == id && !ft.IsDeleted);
+            try
+            {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!",
+                        error: "Unauthorized", statusCode: 401);
 
-            if (term == null)
-                return ApiResponse(false, "Firm term not found", error: "NotFound");
+                var term = await _context.FirmTerms
+                    .Where(ft =>
+                        ft.FirmTermId == id &&
+                        ft.FirmId == firmId &&
+                        !ft.IsDeleted)
+                    .FirstOrDefaultAsync();
 
-            term.IsDeleted = true;
-            term.IsActive = false;
-            term.UpdatedAt = DateTime.Now;
+                if (term == null)
+                    return ApiResponse(false, "Record not found", statusCode: 404);
 
-            await _context.SaveChangesAsync();
+                term.IsDeleted = true;
+                term.IsActive = false;
+                term.UpdatedAt = DateTime.UtcNow;
 
-            return ApiResponse(true, "Firm term deleted successfully");
+                await _context.SaveChangesAsync();
+
+                return ApiResponse(true, "Firm term deleted successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting firm term {FirmTermId}", id);
+                return ApiResponse(false, "Something went wrong",
+                    error: ex.Message, statusCode: 500);
+            }
         }
-
-        // =============================
-        // GET BY FIRM ID
-        // =============================
-        [HttpGet("firm/{firmId}")]
-        public async Task<IActionResult> GetFirmTermsByFirmId(int firmId)
-        {
-            var terms = await _context.FirmTerms
-                .Where(ft => ft.FirmId == firmId && !ft.IsDeleted)
-                .OrderByDescending(ft => ft.CreatedAt)
-                .ToListAsync();
-
-            return ApiResponse(true, "Firm terms retrieved successfully", terms);
-        }
-
     }
-
-    
 }
