@@ -12,6 +12,7 @@ using System.Text;
 
 namespace cab_management.Controllers
 {
+    [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme + "," + JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/auth")]
     [ApiController]
     public class AuthController : BaseApiController

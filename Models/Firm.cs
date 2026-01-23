@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace cab_management.Models
+<<<<<<< HEAD
 {
     public class Firm
     {
@@ -25,6 +26,29 @@ namespace cab_management.Models
 
         public ICollection<CabPrice> CabPrices { get; set; } = new List<CabPrice>();
 
+=======
+{
+    public class Firm
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int FirmId { get; set; }
+
+        [Required]
+        public string FirmName { get; set; } = null!;
+
+        [Required]
+        public string FirmCode { get; set; } = null!;
+
+        public bool IsActive { get; set; }
+        public bool IsDeleted { get; set; } = false;
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+        // One-to-One
+        public FirmDetail FirmDetails { get; set; } = null!;
+>>>>>>> 1763ee24714c063cadf8e6bc79f247bf82a9804d
     }
     public class FirmCreateDto
     {

@@ -110,6 +110,11 @@ CreatedAt DATETIME,
 UpdatedAt DATETIME
 --  CONSTRAINT FK_Cabs_Organizations FOREIGN KEY (OrganizationId)  REFERENCES Organizations(OrganizationId ),
 );
+
+
+EXEC sp_rename 'Cabs.OrganizationId', 'FirmId', 'COLUMN';
+
+
 ------------------CUSTOMER -------------------
 CREATE TABLE Customer
 (

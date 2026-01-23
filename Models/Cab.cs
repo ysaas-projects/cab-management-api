@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace cab_management.Models
+<<<<<<< HEAD
 {
 
     public class Cab
@@ -21,8 +22,35 @@ namespace cab_management.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public virtual Firm? Firm { get; set; }
         public ICollection<CabPrice> CabPrices { get; set; } = new List<CabPrice>();
+=======
+{
 
+    public class Cab
+    {
+        [Key]
+        public int CabId { get; set; }
+
+        [ForeignKey(nameof(Firm))]
+>>>>>>> 1763ee24714c063cadf8e6bc79f247bf82a9804d
+
+        public int FirmId { get; set; }
+        [Required]
+        [MaxLength(50)]
+        public string CabType { get; set; }
+        public bool IsActive { get; set; } = true;
+        public bool IsDeleted { get; set; } = false;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public virtual Firm? Firm { get; set; }
     }
+    public class CreateCabDto
+    {
+        [Required]
+        [MaxLength(50)]
+        public string CabType { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+<<<<<<< HEAD
     public class CreateCabDto
     {
         [Required]
@@ -38,6 +66,16 @@ namespace cab_management.Models
         public bool? IsActive { get; set; }
     }
 
+=======
+
+    public class UpdateCabDto
+    {
+        [MaxLength(50)]
+        public string? CabType { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
+>>>>>>> 1763ee24714c063cadf8e6bc79f247bf82a9804d
     public class CabResponseDto
     {
         public int CabId { get; set; }
@@ -48,6 +86,12 @@ namespace cab_management.Models
         public bool IsDeleted { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+<<<<<<< HEAD
     }
 
 }
+=======
+    }
+
+}
+>>>>>>> 1763ee24714c063cadf8e6bc79f247bf82a9804d
