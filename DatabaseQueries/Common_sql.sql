@@ -3,7 +3,6 @@ CREATE DATABASE cab_management;
 
 use cab_management;
 
-
 CREATE TABLE Firms
 (
     FirmId INT IDENTITY PRIMARY KEY,
@@ -102,7 +101,7 @@ CREATE TABLE UserRoles
 ----------- CABS --------------
 CREATE TABLE Cabs(
 CabId INT IDENTITY PRIMARY KEY,
-OrganizationId INT, 
+FirmId INT, 
 CabType VARCHAR(50),
 IsActive BIT,
 IsDeleted BIT,
@@ -111,8 +110,6 @@ UpdatedAt DATETIME
 --  CONSTRAINT FK_Cabs_Organizations FOREIGN KEY (OrganizationId)  REFERENCES Organizations(OrganizationId ),
 );
 
-
-EXEC sp_rename 'Cabs.OrganizationId', 'FirmId', 'COLUMN';
 
 
 ------------------CUSTOMER -------------------
@@ -231,4 +228,16 @@ CREATE TABLE Invoices
     IsDeleted BIT NOT NULL DEFAULT 0,
  
     
+);
+
+
+CREATE TABLE PricingRules
+(
+    PricingRuleId INT IDENTITY(1,1) PRIMARY KEY,
+    FirmId INT NOT NULL,
+    RuleDetails NVARCHAR(500) NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0
 );

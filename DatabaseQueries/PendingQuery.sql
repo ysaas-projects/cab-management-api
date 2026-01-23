@@ -1,17 +1,1 @@
 ﻿
-CREATE TABLE PricingRules
-(
-    PricingRuleId INT IDENTITY(1,1) PRIMARY KEY,
-    FirmId INT NOT NULL,
-    RoleDetails NVARCHAR(500) NOT NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
-    UpdatedAt DATETIME NULL,
-    IsDeleted BIT NOT NULL DEFAULT 0
-);
-
-
-EXEC sp_rename 
-    'PricingRules.RoleDetails',
-    'RuleDetails',
-    'COLUMN';
