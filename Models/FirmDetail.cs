@@ -3,99 +3,102 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace cab_management.Models
 {
-    public class FirmDetail
-    {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int FirmDetailsId { get; set; }  
+	// ================================
+	// ENTITY: FirmDetail (DB Table)
+	// ================================
+	public class FirmDetail
+	{
+		[Key]
+		[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+		public int FirmDetailsId { get; set; }
 
-        [ForeignKey(nameof(Firm))]
-        public int FirmId { get; set; }
+		[Required]
+		[ForeignKey(nameof(Firm))]
+		public int FirmId { get; set; }
 
-        [ForeignKey(nameof(FirmId))]
-        public Firm Firm { get; set; } = null!;
+		public Firm Firm { get; set; } = null!;
 
-        [Required]
-        [MaxLength(1000)]
-        public string LogoImagePath { get; set; } = null!;
+		// ---------------- BASIC DETAILS ----------------
 
-        [Required]
-        [StringLength(100, MinimumLength = 5)]
-        public string Address { get; set; } = null!;
+		[Required]
+		[StringLength(1000)]
+		public string Address { get; set; } = null!;
 
-        [Required]
-        [RegularExpression(@"^\+91[6-9][0-9]{9}$")]
-        public string ContactNumber { get; set; } = null!;
+		[Required]
+		[RegularExpression(@"^\+91[6-9][0-9]{9}$")]
+		public string ContactNumber { get; set; } = null!;
 
-        public string ContactPerson { get; set; } = null!;
+		public string? ContactPerson { get; set; }
 
-        [Required]
-        [RegularExpression(@"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$")]
-        public string GstNumber { get; set; } = null!;
+		[Required]
+		[RegularExpression(@"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$")]
+		public string GstNumber { get; set; } = null!;
 
-        public bool IsActive { get; set; }
-        public bool IsDeleted { get; set; } = false;
+		// ---------------- LOGO ----------------
+		[MaxLength(1000)]
+		public string? LogoImagePath { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+		// ---------------- STATUS ----------------
+		public bool IsActive { get; set; } = true;
+		public bool IsDeleted { get; set; } = false;
 
-    }
-    public class FirmDetailsResponseDto
-    {
-        public int FirmDetailsId { get; set; }
-        public int FirmId { get; set; }
-        public string FirmName { get; set; }
+		// ---------------- AUDIT ----------------
+		public DateTime CreatedAt { get; set; } = DateTime.Now;
+		public DateTime UpdatedAt { get; set; } = DateTime.Now;
+	}
 
-        public string Address { get; set; }
+	// ================================
+	// RESPONSE DTO
+	// ================================
+	public class FirmDetailsResponseDto
+	{
+		public int FirmDetailsId { get; set; }
+		public int FirmId { get; set; }
 
-        // ---------------- CONTACT NUMBER ----------------
+		public string FirmName { get; set; } = null!;
 
-        public string ContactNumber { get; set; } = null!;
-        public string ContactPerson { get; set; } = null!;
+		public string Address { get; set; } = null!;
+		public string ContactNumber { get; set; } = null!;
+		public string? ContactPerson { get; set; }
 
-        public string? LogoImagePath { get; set; }
+		public string? LogoImagePath { get; set; }
 
-        // ---------------- GST NUMBER ----------------
-        public string GstNumber { get; set; } = null!;
-        public bool IsActive { get; set; }
-        public bool IsDeleted { get; set; }
-    }
+		public string GstNumber { get; set; } = null!;
+		public bool IsActive { get; set; }
+		public bool IsDeleted { get; set; }
+	}
 
+	// ================================
+	// UPDATE DTO (API INPUT)
+	// ================================
+	public class FirmDetailsUpdateDto
+	{
+		public string? Address { get; set; }
+		public string? ContactNumber { get; set; }
+		public string? ContactPerson { get; set; }
+		public string? GstNumber { get; set; }
 
-    public class FirmDetailsUpdateDto
-    {
+		public bool IsActive { get; set; }
 
-        public string? Address { get; set; }
-        public string? ContactNumber { get; set; }
-        public string? ContactPerson { get; set; }
-        public string? GstNumber { get; set; }
-<<<<<<< HEAD
-        public string? LogoImagePath { get; set; }
-        public bool IsActive { get; set; }
+		// File upload (not mapped to DB)
+		[NotMapped]
+		public IFormFile? Logo { get; set; }
+	}
 
-        public IFormFile? Logo { get; set; }
-    }
-    public class FirmDetailsDto
-    {
-        public int FirmDetailsId { get; set; }   
+	// ================================
+	// SHARED DTO (USED IN FirmResponseDto)
+	// ================================
+	public class FirmDetailsDto
+	{
+		public int FirmDetailsId { get; set; }
 
-=======
-        //public string? LogoImagePath { get; set; }
-        public bool IsActive { get; set; }
-        public IFormFile? Logo { get; set; }
+		public string Address { get; set; } = null!;
+		public string ContactNumber { get; set; } = null!;
+		public string? ContactPerson { get; set; }
 
-    }
-    public class FirmDetailsDto
-    {
-        public int FirmDetailsId { get; set; }
->>>>>>> 1763ee24714c063cadf8e6bc79f247bf82a9804d
-        public string Address { get; set; }
-        public string ContactNumber { get; set; }
-        public string ContactPerson { get; set; }
-        public string GstNumber { get; set; }
-        public string LogoImagePath { get; set; }
-        public bool IsActive { get; set; }
-    }
+		public string GstNumber { get; set; } = null!;
+		public string? LogoImagePath { get; set; }
 
-
+		public bool IsActive { get; set; }
+	}
 }

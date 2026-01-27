@@ -80,7 +80,7 @@ namespace cab_management.Controllers
                     return ApiResponse(false, "Validation failed", errors);
                 }
 
-                DutyExpenses dutyExpense = new DutyExpenses
+                DutyExpense dutyExpense = new DutyExpense
                 {
                     DutyId = dto.DutyId,
                     ExpenseType = dto.ExpenseType,

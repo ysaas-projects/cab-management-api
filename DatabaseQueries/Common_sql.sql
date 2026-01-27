@@ -14,6 +14,24 @@ CREATE TABLE Firms
     IsDeleted BIT DEFAULT 0
 );
 
+CREATE TABLE FirmDetails
+(
+    FirmDetailsId INT IDENTITY PRIMARY KEY,
+    FirmId INT NOT NULL,  
+    Address VARCHAR(255),--null
+    ContactNumber VARCHAR(15),--null
+    ContactPerson VARCHAR(100),--null
+    LogoImagePath VARCHAR(255),--null
+    GstNumber VARCHAR(50),--null
+    IsActive BIT DEFAULT 1,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT DEFAULT 0,
+     -- Foreign key constraints
+        --CONSTRAINT FK_FirmDetails_Firms
+        --FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
+);
+
 CREATE TABLE Users (
     UserId INT IDENTITY(1,1) PRIMARY KEY,
     FirmId INT NULL,
