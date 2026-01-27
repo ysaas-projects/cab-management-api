@@ -8,7 +8,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace cab_management.Controllers
 {
-    //[Authorize(AuthenticationSchemes =JwtBearerDefaults.AuthenticationScheme + "," + CookieAuthenticationDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes =
+        JwtBearerDefaults.AuthenticationScheme + "," +
+        CookieAuthenticationDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
     [ApiController]
     public class FirmsController : BaseApiController
@@ -21,9 +23,10 @@ namespace cab_management.Controllers
         }
 
         // ================================
-        // GET ALL FIRMS (Firm + FirmDetails)
+        // GET ALL FIRMS → Administrator
         // ================================
         [HttpGet]
+        [Authorize(Roles = "Super-Admin")]
         public async Task<IActionResult> GetFirms()
         {
             try
@@ -62,11 +65,23 @@ namespace cab_management.Controllers
         }
 
         // ================================
-        // GET FIRM BY ID
+        // GET FIRM BY ID →Admin + Administrator
         // ================================
         [HttpGet("{id}")]
+        [Authorize(Roles = "Firm-Admin,Super-Admin")]
         public async Task<IActionResult> GetFirmById(int id)
         {
+            // Firm-Admin can access only own firm
+            if (User.IsInRole("Firm-Admin"))
+            {
+                var firmIdClaim = User.FindFirst("firmId")?.Value;
+                if (string.IsNullOrEmpty(firmIdClaim))
+                    return Forbid();
+
+                if (int.Parse(firmIdClaim) != id)
+                    return Forbid();
+            }
+
             var firm = await _context.Firms
                 .Where(f => f.FirmId == id && !f.IsDeleted)
                 .Select(f => new FirmResponseDto
@@ -98,10 +113,10 @@ namespace cab_management.Controllers
         }
 
         // ================================
-        // CREATE FIRM + EMPTY FIRM DETAILS
+        // CREATE FIRM → Super-Admin
         // ================================
-        
         [HttpPost]
+        [Authorize(Roles = "Super-Admin")]
         public async Task<IActionResult> CreateFirm([FromBody] FirmDetailsFirmCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -149,6 +164,34 @@ namespace cab_management.Controllers
                 _context.FirmDetails.Add(firmDetail);
                 await _context.SaveChangesAsync();
 
+                // OPTIONAL: auto-create default Firm-Admin
+                var firmAdminRole = await _context.Roles
+                    .FirstOrDefaultAsync(r => r.RoleName == "Firm-Admin");
+
+                if (firmAdminRole != null)
+                {
+                    var adminUser = new User
+                    {
+                        UserName = $"{firm.FirmCode}-admin".ToLower(),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin@1234"),
+                        FirmId = firm.FirmId,
+                        IsActive = true
+                    };
+
+                    _context.Users.Add(adminUser);
+                    await _context.SaveChangesAsync();
+
+                    _context.UserRoles.Add(new UserRole
+                    {
+                        UserId = adminUser.UserId,
+                        RoleId = firmAdminRole.RoleId,
+                        //FirmId = firm.FirmId,
+                        IsActive = true
+                    });
+
+                    await _context.SaveChangesAsync();
+                }
+
                 await transaction.CommitAsync();
 
                 return ApiResponse(true, "Firm and FirmDetails created successfully", new
@@ -165,12 +208,22 @@ namespace cab_management.Controllers
         }
 
         // ================================
-        // UPDATE FIRM
+        // UPDATE FIRM → Admin + Administrator
+        // ================================
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateFirm(
-    int id,
-    [FromBody] FirmDetailsFirmUpdateDto dto)
+        [Authorize(Roles = "Firm-Admin,Super-Admin")]
+        public async Task<IActionResult> UpdateFirm(int id, [FromBody] FirmDetailsFirmUpdateDto dto)
         {
+            if (User.IsInRole("Firm-Admin"))
+            {
+                var firmIdClaim = User.FindFirst("firmId")?.Value;
+                if (string.IsNullOrEmpty(firmIdClaim))
+                    return Forbid();
+
+                if (int.Parse(firmIdClaim) != id)
+                    return Forbid();
+            }
+
             if (id != dto.FirmId)
                 return ApiResponse(false, "FirmId mismatch");
 
@@ -178,7 +231,6 @@ namespace cab_management.Controllers
 
             try
             {
-                // Firm
                 var firm = await _context.Firms
                     .FirstOrDefaultAsync(f => f.FirmId == id && !f.IsDeleted);
 
@@ -190,7 +242,6 @@ namespace cab_management.Controllers
                 firm.IsActive = dto.IsActive;
                 firm.UpdatedAt = DateTime.Now;
 
-                // FirmDetails
                 var details = await _context.FirmDetails
                     .FirstOrDefaultAsync(fd => fd.FirmId == id && !fd.IsDeleted);
 
@@ -217,9 +268,10 @@ namespace cab_management.Controllers
         }
 
         // ================================
-        // DELETE FIRM (SOFT DELETE)
+        // DELETE FIRM → Administrator
         // ================================
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Super-Admin")]
         public async Task<IActionResult> DeleteFirm(int id)
         {
             var firm = await _context.Firms
@@ -232,7 +284,6 @@ namespace cab_management.Controllers
             firm.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
-
             return ApiResponse(true, "Firm deleted successfully");
         }
     }
