@@ -1,210 +1,290 @@
 ﻿using cab_management.Data;
 using cab_management.Models;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace cab_management.Controllers
 {
-	[Route("api/[controller]")]
-	[ApiController]
-	public class FirmsController : BaseApiController
-	{
-		private readonly ApplicationDbContext _context;
+    [Authorize(AuthenticationSchemes =
+        JwtBearerDefaults.AuthenticationScheme + "," +
+        CookieAuthenticationDefaults.AuthenticationScheme)]
+    [Route("api/[controller]")]
+    [ApiController]
+    public class FirmsController : BaseApiController
+    {
+        private readonly ApplicationDbContext _context;
 
-		public FirmsController(ApplicationDbContext context)
-		{
-			_context = context;
-		}
+        public FirmsController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
 
-		// ================================
-		// GET ALL FIRMS
-		// ================================
-		[HttpGet]
-		public async Task<IActionResult> GetFirms()
-		{
-			try
-			{
-				var firms = await _context.Firms
-					.Where(f => !f.IsDeleted)
-					.OrderBy(f => f.FirmName)
-					.Select(f => new FirmResponseDto
-					{
-						FirmId = f.FirmId,
-						FirmName = f.FirmName,
-						FirmCode = f.FirmCode,
-						IsActive = f.IsActive,
-						FirmDetails = f.FirmDetails
-							.Where(fd => !fd.IsDeleted)
-							.Select(fd => new FirmDetailsDto
-							{
-								FirmDetailsId = fd.FirmDetailsId,
-								Address = fd.Address,
-								ContactNumber = fd.ContactNumber,
-								ContactPerson = fd.ContactPerson,
-								GstNumber = fd.GstNumber,
-								LogoImagePath = fd.LogoImagePath,
-								IsActive = fd.IsActive
-							})
-							.FirstOrDefault()
-					})
-					.ToListAsync();
+        // ================================
+        // GET ALL FIRMS → Administrator
+        // ================================
+        [HttpGet]
+        [Authorize(Roles = "Super-Admin")]
+        public async Task<IActionResult> GetFirms()
+        {
+            try
+            {
+                var firms = await _context.Firms
+                    .Where(f => !f.IsDeleted)
+                    .OrderBy(f => f.FirmName)
+                    .Select(f => new FirmResponseDto
+                    {
+                        FirmId = f.FirmId,
+                        FirmName = f.FirmName,
+                        FirmCode = f.FirmCode,
+                        IsActive = f.IsActive,
+                        FirmDetails = f.FirmDetails
+                            .Where(fd => !fd.IsDeleted)
+                            .Select(fd => new FirmDetailsDto
+                            {
+                                FirmDetailsId = fd.FirmDetailsId,
+                                Address = fd.Address,
+                                ContactNumber = fd.ContactNumber,
+                                ContactPerson = fd.ContactPerson,
+                                GstNumber = fd.GstNumber,
+                                LogoImagePath = fd.LogoImagePath,
+                                IsActive = fd.IsActive
+                            })
+                            .FirstOrDefault()
+                    })
+                    .ToListAsync();
 
-				return ApiResponse(true, "Firms retrieved successfully", firms);
-			}
-			catch (Exception ex)
-			{
-				return ApiResponse(false, "Error retrieving firms", error: ex.Message);
-			}
-		}
+                return ApiResponse(true, "Firms retrieved successfully", firms);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse(false, "Error retrieving firms", error: ex.Message);
+            }
+        }
 
-		// ================================
-		// GET PAGINATED FIRMS
-		// ================================
-		[HttpGet("paginated")]
-		public async Task<IActionResult> GetFirmsPaginated(
-			int pageNumber = 1,
-			int pageSize = 10,
-			string? search = "",
-			bool? isActive = null)
-		{
-			var query = _context.Firms.Where(f => !f.IsDeleted);
+        // ================================
+        // GET FIRM BY ID →Admin + Administrator
+        // ================================
+        [HttpGet("{id}")]
+        [Authorize(Roles = "Firm-Admin,Super-Admin")]
+        public async Task<IActionResult> GetFirmById(int id)
+        {
+            // Firm-Admin can access only own firm
+            if (User.IsInRole("Firm-Admin"))
+            {
+                var firmIdClaim = User.FindFirst("firmId")?.Value;
+                if (string.IsNullOrEmpty(firmIdClaim))
+                    return Forbid();
 
-			if (!string.IsNullOrWhiteSpace(search))
-			{
-				search = search.ToLower();
-				query = query.Where(f =>
-					f.FirmName.ToLower().Contains(search) ||
-					f.FirmCode.ToLower().Contains(search));
-			}
+                if (int.Parse(firmIdClaim) != id)
+                    return Forbid();
+            }
 
-			if (isActive.HasValue)
-				query = query.Where(f => f.IsActive == isActive.Value);
+            var firm = await _context.Firms
+                .Where(f => f.FirmId == id && !f.IsDeleted)
+                .Select(f => new FirmResponseDto
+                {
+                    FirmId = f.FirmId,
+                    FirmName = f.FirmName,
+                    FirmCode = f.FirmCode,
+                    IsActive = f.IsActive,
+                    FirmDetails = f.FirmDetails
+                        .Where(fd => !fd.IsDeleted)
+                        .Select(fd => new FirmDetailsDto
+                        {
+                            FirmDetailsId = fd.FirmDetailsId,
+                            Address = fd.Address,
+                            ContactNumber = fd.ContactNumber,
+                            ContactPerson = fd.ContactPerson,
+                            GstNumber = fd.GstNumber,
+                            LogoImagePath = fd.LogoImagePath,
+                            IsActive = fd.IsActive
+                        })
+                        .FirstOrDefault()
+                })
+                .FirstOrDefaultAsync();
 
-			var totalCount = await query.CountAsync();
+            if (firm == null)
+                return ApiResponse(false, "Firm not found", error: "NotFound");
 
-			var items = await query
-				.OrderBy(f => f.FirmName)
-				.Skip((pageNumber - 1) * pageSize)
-				.Take(pageSize)
-				.Select(f => new FirmResponseDto
-				{
-					FirmId = f.FirmId,
-					FirmName = f.FirmName,
-					FirmCode = f.FirmCode,
-					IsActive = f.IsActive,
-					FirmDetails = f.FirmDetails
-						.Where(fd => !fd.IsDeleted)
-						.Select(fd => new FirmDetailsDto
-						{
-							FirmDetailsId = fd.FirmDetailsId,
-							Address = fd.Address,
-							ContactNumber = fd.ContactNumber,
-							ContactPerson = fd.ContactPerson,
-							GstNumber = fd.GstNumber,
-							LogoImagePath = fd.LogoImagePath,
-							IsActive = fd.IsActive
-						})
-						.FirstOrDefault()
-				})
-				.ToListAsync();
+            return ApiResponse(true, "Firm retrieved successfully", firm);
+        }
 
-			return ApiResponse(true, "Firms retrieved successfully", new
-			{
-				TotalCount = totalCount,
-				PageSize = pageSize,
-				CurrentPage = pageNumber,
-				TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
-				Items = items
-			});
-		}
+        // ================================
+        // CREATE FIRM → Super-Admin
+        // ================================
+        [HttpPost]
+        [Authorize(Roles = "Super-Admin")]
+        public async Task<IActionResult> CreateFirm([FromBody] FirmDetailsFirmCreateDto dto)
+        {
+            if (!ModelState.IsValid)
+                return ApiResponse(false, "Invalid data");
 
-		// ================================
-		// GET FIRM BY ID
-		// ================================
-		[HttpGet("{id}")]
-		public async Task<IActionResult> GetFirmById(int id)
-		{
-			var firm = await _context.Firms
-				.Where(f => f.FirmId == id && !f.IsDeleted)
-				.Select(f => new FirmResponseDto
-				{
-					FirmId = f.FirmId,
-					FirmName = f.FirmName,
-					FirmCode = f.FirmCode,
-					IsActive = f.IsActive,
-					FirmDetails = f.FirmDetails
-						.Where(fd => !fd.IsDeleted)
-						.Select(fd => new FirmDetailsDto
-						{
-							FirmDetailsId = fd.FirmDetailsId,
-							Address = fd.Address,
-							ContactNumber = fd.ContactNumber,
-							ContactPerson = fd.ContactPerson,
-							GstNumber = fd.GstNumber,
-							LogoImagePath = fd.LogoImagePath,
-							IsActive = fd.IsActive
-						})
-						.FirstOrDefault()
-				})
-				.FirstOrDefaultAsync();
+            bool exists = await _context.Firms.AnyAsync(f =>
+                (f.FirmName.ToLower() == dto.FirmName.ToLower()
+                 || f.FirmCode.ToLower() == dto.FirmCode.ToLower())
+                && !f.IsDeleted);
 
-			if (firm == null)
-				return ApiResponse(false, "Firm not found", error: "NotFound");
+            if (exists)
+                return ApiResponse(false, "Firm already exists", error: "Duplicate");
 
-			return ApiResponse(true, "Firm retrieved successfully", firm);
-		}
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
-		// ================================
-		// CREATE FIRM + DETAILS
-		// ================================
-		[HttpPost]
-		public async Task<IActionResult> CreateFirm([FromBody] FirmDetailsFirmCreateDto dto)
-		{
-			using var tx = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var firm = new Firm
+                {
+                    FirmName = dto.FirmName.Trim(),
+                    FirmCode = dto.FirmCode.Trim(),
+                    IsActive = dto.IsActive,
+                    IsDeleted = false,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                };
 
-			var firm = new Firm
-			{
-				FirmName = dto.FirmName,
-				FirmCode = dto.FirmCode,
-				IsActive = dto.IsActive
-			};
+                _context.Firms.Add(firm);
+                await _context.SaveChangesAsync();
 
-			_context.Firms.Add(firm);
-			await _context.SaveChangesAsync();
+                var firmDetail = new FirmDetail
+                {
+                    FirmId = firm.FirmId,
+                    Address = dto.Address,
+                    ContactNumber = dto.ContactNumber,
+                    ContactPerson = dto.ContactPerson,
+                    GstNumber = dto.GstNumber,
+                    LogoImagePath = dto.LogoImagePath,
+                    IsActive = true,
+                    IsDeleted = false,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                };
 
-			_context.FirmDetails.Add(new FirmDetail
-			{
-				FirmId = firm.FirmId,
-				Address = dto.Address,
-				ContactNumber = dto.ContactNumber,
-				ContactPerson = dto.ContactPerson,
-				GstNumber = dto.GstNumber,
-				LogoImagePath = dto.LogoImagePath,
-				IsActive = true
-			});
+                _context.FirmDetails.Add(firmDetail);
+                await _context.SaveChangesAsync();
 
-			await _context.SaveChangesAsync();
-			await tx.CommitAsync();
+                // OPTIONAL: auto-create default Firm-Admin
+                var firmAdminRole = await _context.Roles
+                    .FirstOrDefaultAsync(r => r.RoleName == "Firm-Admin");
 
-			return ApiResponse(true, "Firm created successfully");
-		}
+                if (firmAdminRole != null)
+                {
+                    var adminUser = new User
+                    {
+                        UserName = $"{firm.FirmCode}-admin".ToLower(),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin@1234"),
+                        FirmId = firm.FirmId,
+                        IsActive = true
+                    };
 
-		// ================================
-		// DELETE (SOFT)
-		// ================================
-		[HttpDelete("{id}")]
-		public async Task<IActionResult> DeleteFirm(int id)
-		{
-			var firm = await _context.Firms.FirstOrDefaultAsync(f => f.FirmId == id);
+                    _context.Users.Add(adminUser);
+                    await _context.SaveChangesAsync();
 
-			if (firm == null)
-				return ApiResponse(false, "Firm not found");
+                    _context.UserRoles.Add(new UserRole
+                    {
+                        UserId = adminUser.UserId,
+                        RoleId = firmAdminRole.RoleId,
+                        //FirmId = firm.FirmId,
+                        IsActive = true
+                    });
 
-			firm.IsDeleted = true;
-			firm.UpdatedAt = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                }
 
-			await _context.SaveChangesAsync();
-			return ApiResponse(true, "Firm deleted successfully");
-		}
-	}
+                await transaction.CommitAsync();
+
+                return ApiResponse(true, "Firm and FirmDetails created successfully", new
+                {
+                    firm.FirmId,
+                    firm.FirmName
+                });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return ApiResponse(false, "Error creating firm", error: ex.Message);
+            }
+        }
+
+        // ================================
+        // UPDATE FIRM → Admin + Administrator
+        // ================================
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Firm-Admin,Super-Admin")]
+        public async Task<IActionResult> UpdateFirm(int id, [FromBody] FirmDetailsFirmUpdateDto dto)
+        {
+            if (User.IsInRole("Firm-Admin"))
+            {
+                var firmIdClaim = User.FindFirst("firmId")?.Value;
+                if (string.IsNullOrEmpty(firmIdClaim))
+                    return Forbid();
+
+                if (int.Parse(firmIdClaim) != id)
+                    return Forbid();
+            }
+
+            if (id != dto.FirmId)
+                return ApiResponse(false, "FirmId mismatch");
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var firm = await _context.Firms
+                    .FirstOrDefaultAsync(f => f.FirmId == id && !f.IsDeleted);
+
+                if (firm == null)
+                    return ApiResponse(false, "Firm not found");
+
+                firm.FirmName = dto.FirmName;
+                firm.FirmCode = dto.FirmCode;
+                firm.IsActive = dto.IsActive;
+                firm.UpdatedAt = DateTime.Now;
+
+                var details = await _context.FirmDetails
+                    .FirstOrDefaultAsync(fd => fd.FirmId == id && !fd.IsDeleted);
+
+                if (details == null)
+                    return ApiResponse(false, "Firm details not found");
+
+                details.Address = dto.Address;
+                details.ContactNumber = dto.ContactNumber;
+                details.ContactPerson = dto.ContactPerson;
+                details.GstNumber = dto.GstNumber;
+                details.LogoImagePath = dto.LogoImagePath;
+                details.UpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return ApiResponse(true, "Firm updated successfully");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return ApiResponse(false, "Error updating firm", error: ex.Message);
+            }
+        }
+
+        // ================================
+        // DELETE FIRM → Administrator
+        // ================================
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Super-Admin")]
+        public async Task<IActionResult> DeleteFirm(int id)
+        {
+            var firm = await _context.Firms
+                .FirstOrDefaultAsync(f => f.FirmId == id && !f.IsDeleted);
+
+            if (firm == null)
+                return ApiResponse(false, "Firm not found", error: "NotFound");
+
+            firm.IsDeleted = true;
+            firm.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return ApiResponse(true, "Firm deleted successfully");
+        }
+    }
 }

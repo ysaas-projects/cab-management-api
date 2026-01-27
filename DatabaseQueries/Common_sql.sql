@@ -3,6 +3,7 @@ CREATE DATABASE cab_management;
 
 use cab_management;
 
+
 CREATE TABLE Firms
 (
     FirmId INT IDENTITY PRIMARY KEY,
@@ -12,24 +13,6 @@ CREATE TABLE Firms
     CreatedAt DATETIME DEFAULT GETDATE(),
     UpdatedAt DATETIME NULL,
     IsDeleted BIT DEFAULT 0
-);
-
-CREATE TABLE FirmDetails
-(
-    FirmDetailsId INT IDENTITY PRIMARY KEY,
-    FirmId INT NOT NULL,  
-    Address VARCHAR(255),--null
-    ContactNumber VARCHAR(15),--null
-    ContactPerson VARCHAR(100),--null
-    LogoImagePath VARCHAR(255),--null
-    GstNumber VARCHAR(50),--null
-    IsActive BIT DEFAULT 1,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    UpdatedAt DATETIME NULL,
-    IsDeleted BIT DEFAULT 0,
-     -- Foreign key constraints
-        --CONSTRAINT FK_FirmDetails_Firms
-        --FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
 );
 
 CREATE TABLE Users (
@@ -119,7 +102,7 @@ CREATE TABLE UserRoles
 ----------- CABS --------------
 CREATE TABLE Cabs(
 CabId INT IDENTITY PRIMARY KEY,
-FirmId INT, 
+OrganizationId INT, 
 CabType VARCHAR(50),
 IsActive BIT,
 IsDeleted BIT,
@@ -127,9 +110,6 @@ CreatedAt DATETIME,
 UpdatedAt DATETIME
 --  CONSTRAINT FK_Cabs_Organizations FOREIGN KEY (OrganizationId)  REFERENCES Organizations(OrganizationId ),
 );
-
-
-
 ------------------CUSTOMER -------------------
 CREATE TABLE Customer
 (
@@ -249,13 +229,14 @@ CREATE TABLE Invoices
 );
 
 
-CREATE TABLE PricingRules
+CREATE TABLE FirmTerms
 (
-    PricingRuleId INT IDENTITY(1,1) PRIMARY KEY,
-    FirmId INT NOT NULL,
-    RuleDetails NVARCHAR(500) NOT NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
-    UpdatedAt DATETIME NULL,
-    IsDeleted BIT NOT NULL DEFAULT 0
+FirmTermId INT IDENTITY PRIMARY KEY,
+FirmId INT NOT NULL,
+Description VARCHAR(200),
+IsActive BIT DEFAULT 1,
+CreatedAt DATETIME DEFAULT GETDATE(),
+UpdatedAt DATETIME NULL,
+IsDeleted BIT DEFAULT 0
+-- CONSTRAINT FK_FirmTerms_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
 );

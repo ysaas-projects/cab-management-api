@@ -116,7 +116,7 @@ namespace cab_management.Controllers
                     Particulars = dto.Particulars,
                     Quantity = dto.Quantity,
                     Price = dto.Price,
-                    TotalPrice = dto.Quantity * dto.Price, 
+                    TotalPrice = dto.Quantity * dto.Price, // 👈 calculated
                     IsActive = dto.IsActive,
                     CreatedAt = DateTime.Now,
                     IsDeleted = false

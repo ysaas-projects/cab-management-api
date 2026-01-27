@@ -31,13 +31,13 @@ namespace cab_management.Controllers
                     Select(c => new InvoiceResponseDto
                     {
                         InvoiceId = c.InvoiceId,
-                        FirmId = c.FirmId,
-                        CustomerId = c.CustomerId,
-                        DutySlipId = c.DutySlipId,
-                        InvoiceDate = c.InvoiceDate,
-                        InvoiceNumber = c.InvoiceNumber,
-                        IterneryCode = c.IterneryCode,
-                        TotalAmount = c.TotalAmount,
+                        FirmId=c.FirmId,
+                        CustomerId=c.CustomerId,
+                        DutySlipId=c.DutySlipId,
+                        InvoiceDate=c.InvoiceDate,
+                        InvoiceNumber=c.InvoiceNumber,
+                        IterneryCode=c.IterneryCode,
+                        TotalAmount=c.TotalAmount,
                         IsActive = c.IsActive,
                         CreatedAt = c.CreatedAt,
                         UpdatedAt = c.UpdatedAt,
@@ -46,7 +46,7 @@ namespace cab_management.Controllers
                 return ApiResponse(true, "Invoices retrieved successfully", invoice);
 
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving Invoices");
                 return ApiResponse(false, "Error retrieving Invoices", error: ex.Message);
@@ -98,7 +98,7 @@ namespace cab_management.Controllers
 
         public async Task<IActionResult> CreateInvoices([FromBody] CreateInvoiceDto dto)
         {
-            if (!ModelState.IsValid)
+            if(!ModelState.IsValid)
             {
                 return ApiResponse(false, "validation failed", errors: ModelState.Values.
                    SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList());
@@ -123,7 +123,7 @@ namespace cab_management.Controllers
                 return ApiResponse(true, "Invoice created successfully", invoice, statusCode: 201);
 
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 return ApiResponse(false, "Error creating Invoice", error: ex.Message);
             }
@@ -134,13 +134,13 @@ namespace cab_management.Controllers
         //=========================================
         [HttpPut("{id}")]
 
-        public async Task<IActionResult> UpdateInvoices(int id, [FromBody] UpdateInvoiceDto dto)
+        public async Task<IActionResult> UpdateInvoices(int id,[FromBody] UpdateInvoiceDto dto)
         {
             try
             {
                 var invoice = await _context.Invoices.
                     FirstOrDefaultAsync(e => e.InvoiceId == id && !e.IsDeleted);
-                if (invoice == null)
+                if(invoice==null)
                     return ApiResponse(false, "Invoice not found", error: "Not Found");
                 //invoice.TotalAmount = invoice.TotalAmount;
                 if (dto.TotalAmount.HasValue)
@@ -152,7 +152,7 @@ namespace cab_management.Controllers
                 await _context.SaveChangesAsync();
                 return ApiResponse(true, "Invoice updated successfully");
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 return ApiResponse(false, "error updating invoice", error: ex.Message);
             }
@@ -171,7 +171,7 @@ namespace cab_management.Controllers
                     FirstOrDefaultAsync(e => e.InvoiceId == id && !e.IsDeleted);
                 if (invoice == null)
                     return ApiResponse(false, "invoice not found", error: "Not found");
-
+                
                 invoice.IsDeleted = true;
                 invoice.IsActive = false;
                 invoice.UpdatedAt = DateTime.Now;
@@ -180,7 +180,7 @@ namespace cab_management.Controllers
                 return ApiResponse(true, "Invoice Deleted successfully");
 
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 return ApiResponse(false, "Error deleting invoice", error: ex.Message);
             }

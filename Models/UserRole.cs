@@ -15,6 +15,10 @@ namespace cab_management.Models
         [Required]
         public short RoleId { get; set; }
 
+        public int? FirmId { get; set; }   
+
+        public Firm? Firm { get; set; }    
+
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
