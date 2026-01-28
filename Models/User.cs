@@ -114,4 +114,24 @@ namespace cab_management.Models
     {
         public bool IsActive { get; set; }
     }
+
+	public class UserResponseDto
+	{
+		public int UserId { get; set; }
+		public string UserName { get; set; }
+		public string? Email { get; set; }
+		public string? MobileNumber { get; set; }
+		public bool IsActive { get; set; }
+
+		public FirmBasicDto? Firm { get; set; }
+		public List<string> Roles { get; set; } = new();
+	}
+
+	public class FirmBasicDto
+	{
+		public int FirmId { get; set; }
+		public string FirmName { get; set; }
+	}
+
+
 }

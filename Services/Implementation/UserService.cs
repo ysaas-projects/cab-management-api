@@ -30,15 +30,32 @@ namespace cab_management.Services
 				.FirstOrDefaultAsync(u => u.UserId == userId);
 		}
 
-		public async Task<List<User>> GetAllUsersAsync()
+		public async Task<List<UserResponseDto>> GetAllUsersAsync()
 		{
 			return await _context.Users
-				.Include(u => u.Firm)
-				.Include(u => u.UserRoles)
-				.ThenInclude(ur => ur.Role)
 				.Where(u => !u.IsDeleted)
+				.Select(u => new UserResponseDto
+				{
+					UserId = u.UserId,
+					UserName = u.UserName,
+					Email = u.Email,
+					MobileNumber = u.MobileNumber,
+					IsActive = u.IsActive,
+
+					Firm = u.Firm == null ? null : new FirmBasicDto
+					{
+						FirmId = u.Firm.FirmId,
+						FirmName = u.Firm.FirmName
+					},
+
+					Roles = u.UserRoles
+						.Where(ur => ur.IsActive && !ur.IsDeleted)
+						.Select(ur => ur.Role.RoleName)
+						.ToList()
+				})
 				.ToListAsync();
 		}
+
 
 		public async Task<User> CreateUserAsync(User user, string password, short? roleId = null)
 		{

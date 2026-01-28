@@ -8,10 +8,15 @@ using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using cab_management.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace cab_management.Controllers
 {
-    [Route("api/users")]
+	[Authorize(AuthenticationSchemes =
+			JwtBearerDefaults.AuthenticationScheme + "," +
+			CookieAuthenticationDefaults.AuthenticationScheme)]
+	[Route("api/users")]
     [ApiController]
     public class UsersController : BaseApiController
     {
@@ -23,12 +28,20 @@ namespace cab_management.Controllers
                 _userService = userService;
             }
 
-            [HttpGet]
-            [Authorize(Roles = "Administrator")]
-            public async Task<ActionResult<IEnumerable<User>>> GetAllUsers()
+
+		[HttpGet]
+            public async Task<IActionResult> GetAllUsers()
             {
-                var users = await _userService.GetAllUsersAsync();
-                return Ok(users);
+                try
+                {
+				    var users = await _userService.GetAllUsersAsync();
+				return ApiResponse(true, "Users fetched successfully", users);
+
+			}
+			catch (Exception ex)
+			    {
+				    return ApiResponse(false, "Error", ex.Message);
+			    }
             }
 
             [HttpGet("{userId}")]
@@ -47,7 +60,6 @@ namespace cab_management.Controllers
             }
 
             [HttpPost]
-            [Authorize(Roles = "Firm-Admin")]
             public async Task<ActionResult<User>> CreateUser([FromBody] UserCreateRequest request)
             {
                 try
@@ -71,7 +83,6 @@ namespace cab_management.Controllers
             }
 
             [HttpPost("admin")]
-            [Authorize(Roles = "Firm-Admin")]
             public async Task<ActionResult<User>> CreateAdminUser([FromBody] AdminUserCreateRequest request)
             {
                 try
@@ -114,7 +125,6 @@ namespace cab_management.Controllers
             }
 
             [HttpDelete("{userId}")]
-            [Authorize(Roles = "Firm-Admin")]
             public async Task<IActionResult> DeleteUser(int userId)
             {
                 var result = await _userService.DeleteUserAsync(userId);
@@ -140,7 +150,6 @@ namespace cab_management.Controllers
         }
 
         [HttpPost("{userId}/reset-password")]
-            [Authorize(Roles = "Firm-Admin")]
             public async Task<IActionResult> ResetPassword(int userId, [FromBody] Models.ResetPasswordRequest request)
             {
                 var result = await _userService.ResetPasswordAsync(userId, request.NewPassword);
@@ -151,7 +160,6 @@ namespace cab_management.Controllers
             }
 
             [HttpPost("{userId}/roles")]
-            [Authorize(Roles = "Firm-Admin")]
             public async Task<IActionResult> AssignRole(int userId, [FromBody] AssignRoleRequest request)
             {
                 var result = await _userService.AssignRoleToUserAsync(userId, request.RoleId);
@@ -162,7 +170,6 @@ namespace cab_management.Controllers
             }
 
             [HttpDelete("{userId}/roles/{roleId}")]
-            [Authorize(Roles = "Firm-Admin")]
             public async Task<IActionResult> RemoveRole(int userId, short roleId)
             {
                 var result = await _userService.RemoveRoleFromUserAsync(userId, roleId);
@@ -180,7 +187,6 @@ namespace cab_management.Controllers
             }
 
             [HttpPost("{userId}/toggle-status")]
-            [Authorize(Roles = "Firm-Admin")]
             public async Task<IActionResult> ToggleUserStatus(int userId, [FromBody] ToggleUserStatusRequest request)
             {
                 var result = await _userService.ToggleUserStatusAsync(userId, request.IsActive);

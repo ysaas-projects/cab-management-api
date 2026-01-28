@@ -8,7 +8,7 @@ namespace cab_management.Services
 	public interface IUserService
 	{
 		Task<User> GetUserByIdAsync(int userId);
-		Task<List<User>> GetAllUsersAsync();
+		Task<List<UserResponseDto>> GetAllUsersAsync();
 		Task<User> CreateUserAsync(User user, string password, short? roleId = null);
 		Task<User> UpdateUserAsync(int userId, User user);
 		Task<bool> DeleteUserAsync(int userId); 
