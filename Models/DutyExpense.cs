@@ -7,7 +7,7 @@ namespace cab_management.Models
     // =====================================================
     // DUTY EXPENSES ENTITY (DB TABLE)
     // =====================================================
-    public class DutyExpenses
+    public class DutyExpense
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

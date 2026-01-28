@@ -109,24 +109,32 @@ namespace cab_management.Controllers
 
                 var totalCount = await query.CountAsync();
 
-                var items = await query
-                    .OrderBy(c => c.CabType)
-                    .Skip((pageNumber - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(c => new CabResponseDto
-                    {
-                        CabId = c.CabId,
-                        FirmId = c.FirmId,
-                        FirmName = c.Firm != null ? c.Firm.FirmName : null,
-                        CabType = c.CabType,
-                        IsActive = c.IsActive,
-                        IsDeleted = c.IsDeleted,
-                        CreatedAt = c.CreatedAt,
-                        UpdatedAt = c.UpdatedAt
-                    })
-                    .ToListAsync();
 
-                return ApiResponse(true, "Cabs retrieved successfully", new
+				var skip = (pageNumber - 1) * pageSize;
+
+				// ---------------- FINAL DATA ----------------
+				var items = await query
+				.OrderBy(c => c.CabType)
+				.Skip(skip)
+				.Take(pageSize)
+				.Select(c => new CabResponseDto
+				{
+					CabId = c.CabId,
+					FirmId = c.FirmId,
+					FirmName = _context.Firms
+						.Where(f => f.FirmId == c.FirmId)
+						.Select(f => f.FirmName)
+						.FirstOrDefault(),   // LEFT JOIN behavior
+					CabType = c.CabType,
+					IsActive = c.IsActive,
+					IsDeleted = c.IsDeleted,
+					CreatedAt = c.CreatedAt,
+					UpdatedAt = c.UpdatedAt
+				})
+				.ToListAsync();
+
+
+				return ApiResponse(true, "Cabs retrieved successfully", new
                 {
                     TotalCount = totalCount,
                     PageSize = pageSize,
@@ -143,47 +151,49 @@ namespace cab_management.Controllers
         }
 
 
+		// GET CAB BY ID
+		[HttpGet("{id}")]
+		public async Task<IActionResult> GetCabById(int id)
+		{
+			try
+			{
+				var firmId = GetFirmIdFromToken();
+				if (firmId == null)
+					return ApiResponse(false, "Invalid firm access!", error: "Unauthorized", statusCode: 401);
 
-        // GET CAB BY ID
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetCabById(int id)
-        {
-            try
-            {
-                var firmId = GetFirmIdFromToken();
-                if (firmId == null)
-                    return ApiResponse(false, "Invalid firm access!", error: "Unauthorized", statusCode: 401);
+				var cab = await _context.Cabs
+					.Where(c => c.CabId == id && c.FirmId == firmId && !c.IsDeleted)
+					.Select(c => new CabResponseDto
+					{
+						CabId = c.CabId,
+						FirmId = c.FirmId,
+						FirmName = _context.Firms
+							.Where(f => f.FirmId == c.FirmId)
+							.Select(f => f.FirmName)
+							.FirstOrDefault(), // LEFT JOIN behavior
+						CabType = c.CabType,
+						IsActive = c.IsActive,
+						IsDeleted = c.IsDeleted,
+						CreatedAt = c.CreatedAt,
+						UpdatedAt = c.UpdatedAt
+					})
+					.FirstOrDefaultAsync();
 
-                var cab = await _context.Cabs
-                    .Include(c => c.Firm)
-                    .Where(c => c.CabId == id && c.FirmId == firmId && !c.IsDeleted)
-                    .Select(c => new CabResponseDto
-                    {
-                        CabId = c.CabId,
-                        FirmId = c.FirmId,
-                        FirmName = c.Firm != null ? c.Firm.FirmName : null,
-                        CabType = c.CabType,
-                        IsActive = c.IsActive,
-                        IsDeleted = c.IsDeleted,
-                        CreatedAt = c.CreatedAt,
-                        UpdatedAt = c.UpdatedAt
-                    })
-                    .FirstOrDefaultAsync();
+				if (cab == null)
+					return ApiResponse(false, "Record not found", statusCode: 404);
 
-                if (cab == null)
-                    return ApiResponse(false, "Record not found", statusCode: 404);
+				return ApiResponse(true, "Cab fetched successfully", cab);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Error in GetCabById {CabId}", id);
+				return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
+			}
+		}
 
-                return ApiResponse(true, "Cab fetched successfully", cab);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in GetCabById {CabId}", id);
-                return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
-            }
-        }
 
-        // CREATE CAB
-        [HttpPost]
+		// CREATE CAB
+		[HttpPost]
         public async Task<IActionResult> CreateCab([FromBody] CreateCabDto dto)
         {
             if (!ModelState.IsValid)
@@ -325,4 +335,5 @@ namespace cab_management.Controllers
 
 
     }
-}
+    }
+

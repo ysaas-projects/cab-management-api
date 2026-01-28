@@ -63,7 +63,7 @@ namespace cab_management.Models
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public virtual ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
 
-
+       
     }
 
     // Request DTOs
@@ -115,16 +115,23 @@ namespace cab_management.Models
         public bool IsActive { get; set; }
     }
 
-    public class UserResponseDto
-    {
-        public int UserId { get; set; }
-        public string UserName { get; set; }
-        public string? Email { get; set; }
-        public string? MobileNumber { get; set; }
-        public bool IsActive { get; set; }
-        public int? FirmId { get; set; }
+	public class UserResponseDto
+	{
+		public int UserId { get; set; }
+		public string UserName { get; set; }
+		public string? Email { get; set; }
+		public string? MobileNumber { get; set; }
+		public bool IsActive { get; set; }
 
-        public List<string> Roles { get; set; } = new();
-    }
+		public FirmBasicDto? Firm { get; set; }
+		public List<string> Roles { get; set; } = new();
+	}
+
+	public class FirmBasicDto
+	{
+		public int FirmId { get; set; }
+		public string FirmName { get; set; }
+	}
+
 
 }

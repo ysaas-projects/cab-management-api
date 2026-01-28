@@ -33,7 +33,7 @@ namespace cab_management.Data
         public DbSet<Cab> Cabs { get; set; }
         public DbSet<Customer>Customers { get; set; }
         public DbSet<DriverDetail> DriverDetails { get; set; }
-        public DbSet<DutyExpenses> DutyExpenses { get; set; }
+        public DbSet<DutyExpense> DutyExpenses { get; set; }
         public DbSet<DutySlip> DutySlips { get; set; }
         public DbSet<DutyLocation> DutyLocations { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
