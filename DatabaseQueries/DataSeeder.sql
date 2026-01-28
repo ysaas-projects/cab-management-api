@@ -37,6 +37,6 @@ SET IDENTITY_INSERT Users ON;
 	SET IDENTITY_INSERT Roles OFF;
 
 	SET IDENTITY_INSERT UserRoles ON;
-	INSERT INTO UserRoles (UserRoleId, UserId, RoleId)
-	VALUES (1, 1, 1);
+	INSERT INTO UserRoles (UserRoleId, UserId, RoleId, FirmId)
+	VALUES (1, 1, 1, 1);
 	SET IDENTITY_INSERT UserRoles OFF;

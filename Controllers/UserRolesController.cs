@@ -1,11 +1,14 @@
-﻿using cab_management.Data;
+﻿using System.Security.Claims;
+using cab_management.Data;
 using cab_management.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace cab_management.Controllers
 {
-    [Route("api/[controller]")]
+    [Authorize]
+    [Route("api/user-roles")]
     [ApiController]
     public class UserRolesController : BaseApiController
     {
@@ -16,16 +19,40 @@ namespace cab_management.Controllers
             _context = context;
         }
 
+        // ===============================
+        // Helper: Get FirmId from JWT
+        // ===============================
+        private int GetFirmId()
+        {
+            return int.Parse(User.FindFirst("firmId")!.Value);
+        }
+
+        private bool IsSuperAdmin()
+        {
+            return User.IsInRole("Super-Admin");
+        }
+
         // =========================================
-        //  GET ALL USER ROLES
+        // GET ALL USER ROLES
+        // Super-Admin → all firms
+        // Firm-Admin  → own firm only
         // =========================================
         [HttpGet]
         public async Task<IActionResult> GetUserRoles()
         {
-            var userRoles = await _context.UserRoles
+            var firmId = GetFirmId();
+
+            var query = _context.UserRoles
                 .Include(ur => ur.User)
                 .Include(ur => ur.Role)
-                .Where(ur => !ur.IsDeleted)
+                .Where(ur => !ur.IsDeleted);
+
+            if (!IsSuperAdmin())
+            {
+                query = query.Where(ur => ur.FirmId == firmId);
+            }
+
+            var userRoles = await query
                 .Select(ur => new UserRoleDTO
                 {
                     UserRoleId = ur.UserRoleId,
@@ -44,15 +71,21 @@ namespace cab_management.Controllers
         }
 
         // =========================================
-        //  GET USER ROLE BY ID
+        // GET USER ROLE BY ID
         // =========================================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUserRoleById(int id)
         {
+            var firmId = GetFirmId();
+
             var userRole = await _context.UserRoles
                 .Include(ur => ur.User)
                 .Include(ur => ur.Role)
-                .Where(ur => ur.UserRoleId == id && !ur.IsDeleted)
+                .Where(ur =>
+                    ur.UserRoleId == id &&
+                    !ur.IsDeleted &&
+                    (IsSuperAdmin() || ur.FirmId == firmId)
+                )
                 .Select(ur => new UserRoleDTO
                 {
                     UserRoleId = ur.UserRoleId,
@@ -61,6 +94,7 @@ namespace cab_management.Controllers
                     RoleId = ur.RoleId,
                     RoleName = ur.Role.RoleName,
                     IsActive = ur.IsActive,
+                    IsDeleted = ur.IsDeleted,
                     CreatedAt = ur.CreatedAt,
                     UpdatedAt = ur.UpdatedAt
                 })
@@ -73,25 +107,34 @@ namespace cab_management.Controllers
         }
 
         // =========================================
-        //  CREATE USER ROLE
+        // CREATE USER ROLE
+        // Firm-Admin / Super-Admin
         // =========================================
         [HttpPost]
+        [Authorize(Roles = "Firm-Admin,Super-Admin")]
         public async Task<IActionResult> CreateUserRole([FromBody] CreateUserRoleDTO dto)
         {
             if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
+                return ApiResponse(false, "Invalid data");
 
-                return ApiResponse(false, "Invalid data", null, "validation_error", errors, 400);
-            }
+            var firmId = GetFirmId();
+
+            // Ensure user belongs to same firm (unless Super-Admin)
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u =>
+                    u.UserId == dto.UserId &&
+                    (IsSuperAdmin() || u.FirmId == firmId)
+                );
+
+            if (user == null)
+                return ApiResponse(false, "User not found or invalid firm");
 
             bool exists = await _context.UserRoles.AnyAsync(ur =>
                 ur.UserId == dto.UserId &&
                 ur.RoleId == dto.RoleId &&
-                !ur.IsDeleted);
+                ur.FirmId == firmId &&
+                !ur.IsDeleted
+            );
 
             if (exists)
                 return ApiResponse(false, "User already has this role", null, "duplicate", null, 409);
@@ -100,6 +143,7 @@ namespace cab_management.Controllers
             {
                 UserId = dto.UserId,
                 RoleId = dto.RoleId,
+                FirmId = firmId,             
                 IsActive = dto.IsActive,
                 CreatedAt = DateTime.Now
             };
@@ -114,13 +158,20 @@ namespace cab_management.Controllers
         // UPDATE USER ROLE
         // =========================================
         [HttpPut("{id}")]
+        [Authorize(Roles = "Firm-Admin,Super-Admin")]
         public async Task<IActionResult> UpdateUserRole(int id, [FromBody] UpdateUserRoleDTO dto)
         {
             if (id != dto.UserRoleId)
                 return ApiResponse(false, "UserRoleId mismatch", null, "bad_request", null, 400);
 
+            var firmId = GetFirmId();
+
             var userRole = await _context.UserRoles
-                .FirstOrDefaultAsync(ur => ur.UserRoleId == id && !ur.IsDeleted);
+                .FirstOrDefaultAsync(ur =>
+                    ur.UserRoleId == id &&
+                    !ur.IsDeleted &&
+                    (IsSuperAdmin() || ur.FirmId == firmId)
+                );
 
             if (userRole == null)
                 return ApiResponse(false, "User role not found", null, "not_found", null, 404);
@@ -142,13 +193,20 @@ namespace cab_management.Controllers
         }
 
         // =========================================
-        //  DELETE USER ROLE 
+        // DELETE USER ROLE (SOFT DELETE)
         // =========================================
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Firm-Admin,Super-Admin")]
         public async Task<IActionResult> DeleteUserRole(int id)
         {
+            var firmId = GetFirmId();
+
             var userRole = await _context.UserRoles
-                .FirstOrDefaultAsync(ur => ur.UserRoleId == id && !ur.IsDeleted);
+                .FirstOrDefaultAsync(ur =>
+                    ur.UserRoleId == id &&
+                    !ur.IsDeleted &&
+                    (IsSuperAdmin() || ur.FirmId == firmId)
+                );
 
             if (userRole == null)
                 return ApiResponse(false, "User role not found", null, "not_found", null, 404);

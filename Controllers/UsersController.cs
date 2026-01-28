@@ -4,17 +4,21 @@ using cab_management.Models;
 using cab_management.Services.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using cab_management.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace cab_management.Controllers
 {
+    [Authorize(AuthenticationSchemes =
+       JwtBearerDefaults.AuthenticationScheme + "," +
+       CookieAuthenticationDefaults.AuthenticationScheme)]
     [Route("api/users")]
     [ApiController]
     public class UsersController : BaseApiController
-    {
+    { 
         
             private readonly IUserService _userService;
 
@@ -24,7 +28,7 @@ namespace cab_management.Controllers
             }
 
             [HttpGet]
-            [Authorize(Roles = "Administrator")]
+            [Authorize(Roles = "Super-Admin")]
             public async Task<ActionResult<IEnumerable<User>>> GetAllUsers()
             {
                 var users = await _userService.GetAllUsersAsync();
@@ -40,7 +44,7 @@ namespace cab_management.Controllers
 
                 // Users can only access their own profile unless they're admin
                 var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-                if (currentUserId != userId && !User.IsInRole("admin"))
+                if (currentUserId != userId && !User.IsInRole("Firm-Admin"))
                     return Forbid();
 
                 return Ok(user);
@@ -90,7 +94,7 @@ namespace cab_management.Controllers
             {
                 // Users can only update their own profile unless they're admin
                 var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-                if (currentUserId != userId && !User.IsInRole("admin"))
+                if (currentUserId != userId && !User.IsInRole("Firm-Admin"))
                     return Forbid();
 
                 try
@@ -129,7 +133,7 @@ namespace cab_management.Controllers
         {
             // Users can only change their own password unless they're admin
             var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            if (currentUserId != userId && !User.IsInRole("admin"))
+            if (currentUserId != userId && !User.IsInRole("Firm-Admin"))
                 return Forbid();
 
             var result = await _userService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);

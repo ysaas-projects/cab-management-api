@@ -206,7 +206,7 @@ namespace cab_management.Controllers
                     IsActive = dto.IsActive,
                     IsDeleted = false,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    //UpdatedAt = DateTime.UtcNow
                 };
 
                 _context.Cabs.Add(cab);

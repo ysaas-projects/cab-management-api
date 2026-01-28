@@ -30,17 +30,25 @@ namespace cab_management.Services
 				.FirstOrDefaultAsync(u => u.UserId == userId);
 		}
 
-		public async Task<List<User>> GetAllUsersAsync()
-		{
-			return await _context.Users
-				.Include(u => u.Firm)
-				.Include(u => u.UserRoles)
-				.ThenInclude(ur => ur.Role)
-				.Where(u => !u.IsDeleted)
-				.ToListAsync();
-		}
+        public async Task<List<UserResponseDto>> GetAllUsersAsync()
+        {
+            return await _context.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .Select(u => new UserResponseDto
+                {
+                    UserId = u.UserId,
+                    UserName = u.UserName,
+                    Email = u.Email,
+                    MobileNumber = u.MobileNumber,
+                    IsActive = u.IsActive,
+                    FirmId = u.FirmId,
+                    Roles = u.UserRoles.Select(ur => ur.Role.RoleName).ToList()
+                })
+                .ToListAsync();
+        }
 
-		public async Task<User> CreateUserAsync(User user, string password, short? roleId = null)
+        public async Task<User> CreateUserAsync(User user, string password, short? roleId = null)
 		{
 			if (await _context.Users.AnyAsync(u => u.UserName == user.UserName))
 				throw new Exception("Username already exists");
