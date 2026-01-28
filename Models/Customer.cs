@@ -39,8 +39,7 @@ namespace cab_management.Models
     // ==============================
     public class CustomerCreateDto
     {
-        [Required]
-        public int FirmId { get; set; }
+        
 
         [Required]
         public string CustomerName { get; set; }
@@ -49,7 +48,7 @@ namespace cab_management.Models
 
         public string GstNumber { get; set; }
 
-        public IFormFile LogoImage { get; set; } 
+        public IFormFile LogoImage { get; set; }
     }
 
     // ==============================
@@ -57,7 +56,7 @@ namespace cab_management.Models
     // ==============================
     public class CustomerUpdateDto
     {
-        
+
         [Required]
         public string CustomerName { get; set; }
 
@@ -66,7 +65,23 @@ namespace cab_management.Models
         public string GstNumber { get; set; }
 
         public bool IsActive { get; set; } = true;
+        public IFormFile? LogoImage { get; set; } 
 
+
+    }
+    public class CustomerResponseDto
+    {
+        public int CustomerId { get; set; }
+        public int FirmId { get; set; }
+        public string? FirmName { get; set; }
+        public string CustomerName { get; set; }
+        public string? Address { get; set; }
+        public string? GstNumber { get; set; }
+        public string? LogoImagePath { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsDeleted { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 
 }

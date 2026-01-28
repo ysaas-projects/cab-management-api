@@ -1,47 +1,81 @@
 ﻿using cab_management.Data;
 using cab_management.Models;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace cab_management.Controllers
 {
+    [Authorize(AuthenticationSchemes =
+        CookieAuthenticationDefaults.AuthenticationScheme + "," +
+        JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
     [ApiController]
-    public class CustomerController : BaseApiController
+    public class CustomersController : BaseApiController
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly ILogger<CustomersController> _logger;
 
-
-        public CustomerController(ApplicationDbContext context, IWebHostEnvironment env)
+        public CustomersController(
+            ApplicationDbContext context,
+            IWebHostEnvironment env,
+            ILogger<CustomersController> logger)
         {
             _context = context;
             _env = env;
+            _logger = logger;
+        }
+
+        private int? GetFirmIdFromToken()
+        {
+            var firmIdStr = User.FindFirstValue("firmId");
+            return int.TryParse(firmIdStr, out var firmId) ? firmId : null;
         }
 
         // =============================
         // GET ALL CUSTOMERS
         // =============================
         [HttpGet]
-        public async Task<IActionResult> GetCustomers()
+        public async Task<IActionResult> GetAllCustomers()
         {
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!", "Unauthorized");
+
                 var customers = await _context.Customers
-                    .Where(c => !c.IsDeleted)
+                    .Include(c => c.Firm)
+                    .Where(c => c.FirmId == firmId && !c.IsDeleted)
                     .OrderByDescending(c => c.CreatedAt)
+                    .Select(c => new CustomerResponseDto
+                    {
+                        CustomerId = c.CustomerId,
+                        FirmId = c.FirmId,
+                        FirmName = c.Firm.FirmName,
+                        CustomerName = c.CustomerName,
+                        Address = c.Address,
+                        GstNumber = c.GstNumber,
+                        LogoImagePath = c.LogoImagePath,
+                        IsActive = c.IsActive,
+                        IsDeleted = c.IsDeleted,
+                        CreatedAt = c.CreatedAt,
+                        UpdatedAt = c.UpdatedAt
+                    })
                     .ToListAsync();
 
-                return ApiResponse(true, "Customers retrieved successfully", customers);
+                return ApiResponse(true, "Customers fetched successfully", customers);
             }
             catch (Exception ex)
             {
-                return ApiResponse(false, "Something went wrong", error: ex.Message);
+                _logger.LogError(ex, "Error in GetAllCustomers");
+                return ApiResponse(false, "Something went wrong", ex.Message);
             }
         }
-
 
         // =============================
         // GET CUSTOMER BY ID
@@ -51,70 +85,141 @@ namespace cab_management.Controllers
         {
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!", "Unauthorized");
+
                 var customer = await _context.Customers
-                    .FirstOrDefaultAsync(c => c.CustomerId == id && !c.IsDeleted);
+                    .Include(c => c.Firm)
+                    .Where(c => c.CustomerId == id &&
+                                c.FirmId == firmId &&
+                                !c.IsDeleted)
+                    .Select(c => new CustomerResponseDto
+                    {
+                        CustomerId = c.CustomerId,
+                        FirmId = c.FirmId,
+                        FirmName = c.Firm.FirmName,
+                        CustomerName = c.CustomerName,
+                        Address = c.Address,
+                        GstNumber = c.GstNumber,
+                        LogoImagePath = c.LogoImagePath,
+                        IsActive = c.IsActive,
+                        IsDeleted = c.IsDeleted,
+                        CreatedAt = c.CreatedAt,
+                        UpdatedAt = c.UpdatedAt
+                    })
+                    .FirstOrDefaultAsync();
 
                 if (customer == null)
-                    return ApiResponse(false, "Customer not found", error: "NotFound");
+                    return ApiResponse(false, "Customer not found", statusCode: 404);
 
-                return ApiResponse(true, "Customer retrieved successfully", customer);
+                return ApiResponse(true, "Customer fetched successfully", customer);
             }
             catch (Exception ex)
             {
-                return ApiResponse(false, "Something went wrong", error: ex.Message);
+                _logger.LogError(ex, "Error in GetCustomerById {CustomerId}", id);
+                return ApiResponse(false, "Something went wrong", ex.Message);
             }
         }
-        
-        // =============================
-        // CREATE CUSTOMER
-        // =============================
-        [HttpPost]
-        public async Task<IActionResult> CreateCustomer([FromForm] CustomerCreateDto dto)
+
+
+        [HttpGet("paginated")]
+        public async Task<IActionResult> GetCustomersPaginated(
+            int pageNumber = 1,
+            int pageSize = 10,
+            string? search = null,
+            bool? isActive = null)
         {
             try
             {
-                if (!ModelState.IsValid)
-                    return ApiResponse(false, "Invalid data");
+                if (pageNumber < 1 || pageSize < 1 || pageSize > 100)
+                    return ApiResponse(false, "Invalid pagination parameters");
 
-                bool firmExists = await _context.Firms
-                    .AnyAsync(f => f.FirmId == dto.FirmId && !f.IsDeleted);
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!", "Unauthorized");
 
-                if (!firmExists)
-                    return ApiResponse(false, "Invalid FirmId", error: "BadRequest");
+                var query = _context.Customers
+                    .Include(c => c.Firm)
+                    .Where(c => c.FirmId == firmId && !c.IsDeleted);
 
-                bool duplicate = await _context.Customers.AnyAsync(c =>
-                    c.FirmId == dto.FirmId &&
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    search = search.ToLower().Trim();
+                    query = query.Where(c => c.CustomerName.ToLower().Contains(search));
+                }
+
+                if (isActive.HasValue)
+                    query = query.Where(c => c.IsActive == isActive.Value);
+
+                var totalCount = await query.CountAsync();
+
+                var items = await query
+                    .OrderBy(c => c.CustomerName)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(c => new CustomerResponseDto
+                    {
+                        CustomerId = c.CustomerId,
+                        FirmId = c.FirmId,
+                        FirmName = c.Firm.FirmName,
+                        CustomerName = c.CustomerName,
+                        Address = c.Address,
+                        GstNumber = c.GstNumber,
+                        LogoImagePath = c.LogoImagePath,
+                        IsActive = c.IsActive,
+                        IsDeleted = c.IsDeleted,
+                        CreatedAt = c.CreatedAt,
+                        UpdatedAt = c.UpdatedAt
+                    })
+                    .ToListAsync();
+
+                return ApiResponse(true, "Customers retrieved successfully", new
+                {
+                    TotalCount = totalCount,
+                    PageSize = pageSize,
+                    CurrentPage = pageNumber,
+                    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+                    Items = items
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetCustomersPaginated");
+                return ApiResponse(false, "Error retrieving customers", ex.Message);
+            }
+        }
+
+       
+        [HttpPost]
+        public async Task<IActionResult> CreateCustomer([FromForm] CustomerCreateDto dto)
+        {
+            if (!ModelState.IsValid)
+                return ApiResponse(false, "Validation failed", ModelState);
+
+            try
+            {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!", "Unauthorized");
+
+                var exists = await _context.Customers.AnyAsync(c =>
+                    c.FirmId == firmId &&
                     c.CustomerName.ToLower() == dto.CustomerName.ToLower() &&
                     !c.IsDeleted);
 
-                if (duplicate)
-                    return ApiResponse(false, "Customer already exists for this firm", error: "Duplicate");
+                if (exists)
+                    return ApiResponse(false, "Customer already exists");
 
-                string logoPath = null;
-                if (dto.LogoImage != null && dto.LogoImage.Length > 0)
+                string? logoPath = null;
+                if (dto.LogoImage != null)
                 {
-                    string folderPath = Path.Combine(_env.WebRootPath, "images", "customers");
-                    Directory.CreateDirectory(folderPath);
+                    var folder = Path.Combine(_env.WebRootPath, "images/customers");
+                    Directory.CreateDirectory(folder);
 
-                    string extension = Path.GetExtension(dto.LogoImage.FileName);
-
-                    int nextNumber = 1;
-                    var existingFiles = Directory.GetFiles(folderPath, $"image*{extension}");
-                    if (existingFiles.Length > 0)
-                    {
-                        var numbers = existingFiles
-                            .Select(f => Path.GetFileNameWithoutExtension(f))
-                            .Where(f => f.StartsWith("image"))
-                            .Select(f =>
-                            {
-                                if (int.TryParse(f.Substring(5), out int n)) return n;
-                                return 0;
-                            });
-                        if (numbers.Any()) nextNumber = numbers.Max() + 1;
-                    }
-
-                    string fileName = $"image{nextNumber}{extension}";
-                    string fullPath = Path.Combine(folderPath, fileName);
+                    var ext = Path.GetExtension(dto.LogoImage.FileName);
+                    var fileName = $"{Guid.NewGuid()}{ext}";
+                    var fullPath = Path.Combine(folder, fileName);
 
                     using var stream = new FileStream(fullPath, FileMode.Create);
                     await dto.LogoImage.CopyToAsync(stream);
@@ -124,14 +229,14 @@ namespace cab_management.Controllers
 
                 var customer = new Customer
                 {
-                    FirmId = dto.FirmId,
+                    FirmId = firmId.Value,
                     CustomerName = dto.CustomerName.Trim(),
                     Address = dto.Address,
                     GstNumber = dto.GstNumber,
                     LogoImagePath = logoPath,
                     IsActive = true,
-                    CreatedAt = DateTime.Now,
-                    IsDeleted = false
+                    IsDeleted = false,
+                    CreatedAt = DateTime.UtcNow
                 };
 
                 _context.Customers.Add(customer);
@@ -141,77 +246,90 @@ namespace cab_management.Controllers
             }
             catch (Exception ex)
             {
-                return ApiResponse(false, "Something went wrong", error: ex.Message);
+                _logger.LogError(ex, "Error in CreateCustomer");
+                return ApiResponse(false, "Something went wrong", ex.Message);
             }
         }
-
 
         // =============================
         // UPDATE CUSTOMER
         // =============================
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCustomer(int id, [FromBody] CustomerUpdateDto model)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateCustomer(
+    int id,
+    [FromForm] CustomerUpdateDto dto
+)
         {
             try
             {
-                if (!ModelState.IsValid)
-                    return ApiResponse(false, "Invalid data");
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!", "Unauthorized");
 
                 var customer = await _context.Customers
-                    .FirstOrDefaultAsync(c => c.CustomerId == id && !c.IsDeleted);
+                    .FirstOrDefaultAsync(c =>
+                        c.CustomerId == id &&
+                        c.FirmId == firmId &&
+                        !c.IsDeleted);
 
                 if (customer == null)
-                    return ApiResponse(false, "Customer not found", error: "NotFound");
+                    return ApiResponse(false, "Record not found", statusCode: 404);
 
-                bool duplicate = await _context.Customers.AnyAsync(c =>
-                    c.FirmId == customer.FirmId &&
-                    c.CustomerName.ToLower() == model.CustomerName.ToLower() &&
-                    c.CustomerId != id &&
-                    !c.IsDeleted);
+                customer.CustomerName = dto.CustomerName;
+                customer.Address = dto.Address;
+                customer.GstNumber = dto.GstNumber;
+                customer.IsActive = dto.IsActive;
 
-                if (duplicate)
-                    return ApiResponse(false, "Customer already exists for this firm", error: "Duplicate");
+                // ✅ HANDLE LOGO UPDATE
+                if (dto.LogoImage != null)
+                {
+                    var folder = Path.Combine(_env.WebRootPath, "images/customers");
+                    Directory.CreateDirectory(folder);
 
-                customer.CustomerName = model.CustomerName.Trim();
-                customer.Address = model.Address;
-                customer.GstNumber = model.GstNumber;
-                customer.IsActive = model.IsActive;
-                customer.UpdatedAt = DateTime.Now;
+                    var ext = Path.GetExtension(dto.LogoImage.FileName);
+                    var fileName = $"{Guid.NewGuid()}{ext}";
+                    var fullPath = Path.Combine(folder, fileName);
 
+                    using var stream = new FileStream(fullPath, FileMode.Create);
+                    await dto.LogoImage.CopyToAsync(stream);
+
+                    customer.LogoImagePath = $"images/customers/{fileName}";
+                }
+
+                customer.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
-                return ApiResponse(true, "Customer updated successfully", new
-                {
-                    customer.CustomerId,
-                    customer.FirmId,
-                    customer.CustomerName,
-                    customer.Address,
-                    customer.GstNumber,
-                    customer.IsActive
-                });
+                return ApiResponse(true, "Customer updated successfully", customer);
             }
             catch (Exception ex)
             {
-                return ApiResponse(false, "Something went wrong", error: ex.Message);
+                _logger.LogError(ex, "Error in UpdateCustomer");
+                return ApiResponse(false, "Something went wrong", ex.Message);
             }
         }
 
-
-        // ============================
-        // DELETE CUSTOMER (SOFT DELETE)
-        // ============================
+        // =============================
+        // DELETE CUSTOMER (SOFT)
+        // =============================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCustomer(int id)
         {
             try
             {
-                var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == id && !c.IsDeleted);
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Invalid firm access!", "Unauthorized");
+
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.CustomerId == id && c.FirmId == firmId && !c.IsDeleted);
+
                 if (customer == null)
-                    return ApiResponse(false, "Customer not found", error: "NotFound");
+                    return ApiResponse(false, "Record not found", statusCode: 404);
 
                 customer.IsDeleted = true;
                 customer.IsActive = false;
-                customer.UpdatedAt = DateTime.Now;
+                customer.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
 
@@ -219,13 +337,9 @@ namespace cab_management.Controllers
             }
             catch (Exception ex)
             {
-                return ApiResponse(false, "Something went wrong", error: ex.Message);
+                _logger.LogError(ex, "Error in DeleteCustomer {CustomerId}", id);
+                return ApiResponse(false, "Something went wrong", ex.Message);
             }
         }
     }
 }
-
-
-
-
- 

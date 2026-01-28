@@ -1,20 +1,19 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace cab_management.Models
 {
-    // =====================================================
-    // CABNUMBERDIRECTORY ENTITY (DB TABLE)
-    // =====================================================
     public class CabNumberDirectory
     {
 
         [Key]
         public int CabNumberDirectoryId { get; set; }
 
-        [Required(ErrorMessage = "FirmId is required")]
+        [ForeignKey(nameof(Firm))]
         public int FirmId { get; set; }
 
-        [Required(ErrorMessage = "CabId is required")]
+        [ForeignKey(nameof(Cab))]
+
         public int CabId { get; set; }
 
         [Required(ErrorMessage = "Cab Number is required")]
@@ -25,23 +24,19 @@ namespace cab_management.Models
         public bool IsActive { get; set; } = true;
 
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }
 
         public bool IsDeleted { get; set; } = false;
+        public Firm Firm { get; set; } = null!;
+        public Cab Cab { get; set; } = null!;
     }
 
-    // =====================================================
-    //  CREATE CABNUMBERDIRECTORY DTO 
-    // =====================================================
 
     public class CreateCabNumberDto
     {
-        [Required(ErrorMessage = "FirmId is required")]
-        public int FirmId { get; set; }
 
-        [Required(ErrorMessage = "CabId is required")]
         public int CabId { get; set; }
 
         [Required(ErrorMessage = "Cab Number is required")]
@@ -54,17 +49,12 @@ namespace cab_management.Models
         public bool IsActive { get; set; } = true;
     }
 
-    // =====================================================
-    //  UPDATE  CABNUMBERDIRECTORY  DTO 
-    // =====================================================
 
     public class UpdateCabNumberDto
     {
         [Required(ErrorMessage = "CabNumberDirectoryId is required")]
         public int CabNumberDirectoryId { get; set; }
 
-        [Required(ErrorMessage = "FirmId is required")]
-        public int FirmId { get; set; }
 
         [Required(ErrorMessage = "CabId is required")]
         public int CabId { get; set; }
@@ -77,7 +67,41 @@ namespace cab_management.Models
 
         public bool IsActive { get; set; }
 
-        public DateTime? UpdatedAt { get; set; } = DateTime.Now;
 
+    }
+
+    public class CabNumberDirectoryResponseDto
+    {
+        public int CabNumberDirectoryId { get; set; }
+
+        public int FirmId { get; set; }
+        public string? FirmName { get; set; }
+
+        public int CabId { get; set; }
+        public string? CabType { get; set; }
+
+        public string CabNumber { get; set; } = null!;
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+    }
+
+    // ===============================
+    // CAB WISE RESPONSE DTO (JOIN)
+    // ===============================
+    public class CabWithNumbersDto
+    {
+        public int CabId { get; set; }
+        public string CabType { get; set; } = null!;
+        public List<CabNumberOnlyDto> CabNumbers { get; set; } = new();
+    }
+
+    public class CabNumberOnlyDto
+    {
+        public int CabNumberDirectoryId { get; set; }
+        public string CabNumber { get; set; } = null!;
+        public bool IsActive { get; set; }
     }
 }
