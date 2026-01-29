@@ -15,12 +15,12 @@ namespace cab_management.Models
         [StringLength(100)]
         public string CustomerName { get; set; }
 
-        public string LogoImagePath { get; set; }
+        public string? LogoImagePath { get; set; }
 
-        public string Address { get; set; }
+        public string? Address { get; set; }
 
         [StringLength(20)]
-        public string GstNumber { get; set; }
+        public string? GstNumber { get; set; }
 
         public bool IsActive { get; set; } = true;
 
@@ -39,16 +39,15 @@ namespace cab_management.Models
     // ==============================
     public class CustomerCreateDto
     {
-        
-
         [Required]
         public string CustomerName { get; set; }
 
-        public string Address { get; set; }
+        public string? Address { get; set; }
 
-        public string GstNumber { get; set; }
+        public string? GstNumber { get; set; }
 
-        public IFormFile LogoImage { get; set; }
+        // ✅ OPTIONAL upload
+        public IFormFile? LogoImage { get; set; }
     }
 
     // ==============================
