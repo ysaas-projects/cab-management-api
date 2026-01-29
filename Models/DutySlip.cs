@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using DriverDetails.Models;
 
 namespace cab_management.Models
 {
@@ -38,7 +39,7 @@ namespace cab_management.Models
         public string? CabNumber { get; set; }
 
         //[Required]
-        public int? DriverId { get; set; }
+        public int? DriverDetailId { get; set; }
 
         [StringLength(50)]
         public string? PaymentMode { get; set; }
@@ -78,19 +79,30 @@ namespace cab_management.Models
         public DateTime? UpdatedAt { get; set; }
 
         public bool IsDeleted { get; set; } = false;
+
+        [ForeignKey(nameof(FirmId))]
+        public virtual Firm Firm { get; set; }
+
+
+        [ForeignKey(nameof(CustomerId))]
+        public virtual Customer Customer { get; set; }        
+
+        [ForeignKey(nameof(DriverDetailId))]
+        public virtual DriverDetail DriverDetail { get; set; }   // ✅ ADD
+
+        [ForeignKey(nameof(RequestedCab))]
+        public virtual Cab RequestedCabNav { get; set; }         // ✅ ADD
+
+        [ForeignKey(nameof(SentCab))]
+        public virtual Cab SentCabNav { get; set; }               // ✅ ADD
     }
+
 
     // ===================== CREATE DTO =====================
     public class CreateDutySlipDto
     {
         [Required]
         public DateTime BookedDate { get; set; }
-
-        [Required]
-        public int BookedBy { get; set; }
-
-        [Required]
-        public int FirmId { get; set; }
 
         [Required]
         public int CustomerId { get; set; }
@@ -107,7 +119,7 @@ namespace cab_management.Models
     public class UpdateAssignDriverDto
     {
         //[Required]
-        public int? DriverId { get; set; }
+        public int? DriverDetailId { get; set; }
 
         [Required]
         [StringLength(500)]
@@ -120,11 +132,10 @@ namespace cab_management.Models
         public string? CabNumber { get; set; }
 
         // ✅ STATUS
-        public string Status { get; set; } = "Driver-Assigned";
+        public string Status { get; set; } = "De-Assigned";
         public DateTime? UpdatedAt { get; set; }
     }
 
-    // ===================== START JOURNEY UPDATE DTO =====================
     public class UpdateStartJourneyDto
     {
         [StringLength(255)]
@@ -193,35 +204,48 @@ namespace cab_management.Models
     public class DutySlipResponseDto
     {
         public int DutySlipId { get; set; }
-        public int? DriverId { get; set; }
-        public string? ReportingAddress { get; set; }
-        public DateTime? ReportingDateTime { get; set; }
+
+        public DateTime BookedDate { get; set; }
+        public int BookedBy { get; set; }
+        public string? BookedByName { get; set; }
+
+        public int FirmId { get; set; }
+        public string? FirmName { get; set; }
+        public int CustomerId { get; set; }
+        public string? CustomerName { get; set; }   // ✅ ADD
+
+        public int? DriverDetailId { get; set; }
+        public string? DriverName { get; set; }     // ✅ ADD
+
+        public int? RequestedCab { get; set; }
+        public string? RequestedCabType { get; set; } // ✅ ADD (CabType)
+
         public int? SentCab { get; set; }
+        public string? SentCabType { get; set; }      // ✅ ADD (CabType)
+
         public string? CabNumber { get; set; }
 
+        public DateTime? ReportingDateTime { get; set; }
+        public string? ReportingAddress { get; set; }
         public string? ReportingGeoLocation { get; set; }
 
         public decimal? StartKms { get; set; }
-
-        public string? StartKmsImagePath { get; set; }
-
         public DateTime? StartDateTime { get; set; }
+
         public decimal? CloseKms { get; set; }
-
-        public string? CloseKmsImagePath { get; set; }
-
         public DateTime? CloseDateTime { get; set; }
 
         public decimal? TotalKms { get; set; }
-
         public int? TotalTimeInMin { get; set; }
-        public string NextDayInstruction { get; set; }
-        public string PaymentMode { get; set; }
 
-
+        public string? Destination { get; set; }
+        public string? PaymentMode { get; set; }
         public string? Status { get; set; }
+
+        public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }
+
 
 
 

@@ -1,10 +1,17 @@
 ﻿using cab_management.Data;
 using cab_management.Models;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace cab_management.Controllers
 {
+    [Authorize(AuthenticationSchemes =
+        CookieAuthenticationDefaults.AuthenticationScheme + "," +
+        JwtBearerDefaults.AuthenticationScheme)]
     [ApiController]
     [Route("api/[controller]")]
     public class DutySlipsController : BaseApiController
@@ -19,37 +26,46 @@ namespace cab_management.Controllers
             _context = context;
             _logger = logger;
         }
-       
-        //=========================================
-        //  CREATE DUTY SLIP
-        //=========================================
+
+        // ================= GET FirmId from JWT =================
+        private int? GetFirmIdFromToken()
+        {
+            var firmIdStr = User.FindFirstValue("firmId");
+            return int.TryParse(firmIdStr, out var firmId) ? firmId : null;
+        }
+
+        private int GetUserIdFromToken()
+        {
+            return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        }
+
+        // ================= CREATE DUTY SLIP =================
         [HttpPost]
         public async Task<IActionResult> CreateDutySlip([FromBody] CreateDutySlipDto dto)
         {
             if (!ModelState.IsValid)
-            {
-                return ApiResponse(
-                    false,
-                    "Validation failed",
+                return ApiResponse(false, "Validation failed",
                     errors: ModelState.Values
                         .SelectMany(v => v.Errors)
                         .Select(e => e.ErrorMessage)
-                        .ToList()
-                );
-            }
+                        .ToList(),
+                    statusCode: 400);
 
             try
             {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Unauthorized", statusCode: 401);
+                var userId = GetUserIdFromToken(); // ✅ FROM TOKEN
+
                 var dutySlip = new DutySlip
                 {
                     BookedDate = dto.BookedDate,
-                    BookedBy = dto.BookedBy,
-                    FirmId = dto.FirmId,
+                    BookedBy = userId,              // ✅ TOKEN USER
+                    FirmId = firmId.Value,
                     CustomerId = dto.CustomerId,
                     RequestedCab = dto.RequestedCab,
                     Destination = dto.Destination,
-
-                    //  FORCE DEFAULT VALUES
                     Status = "Booked",
                     CreatedAt = DateTime.UtcNow,
                     IsDeleted = false
@@ -58,32 +74,30 @@ namespace cab_management.Controllers
                 _context.DutySlips.Add(dutySlip);
                 await _context.SaveChangesAsync();
 
-                return ApiResponse(
-                    true,
-                    "Duty slip created successfully",
-                    dutySlip,
-                    statusCode: 201
-                );
+                return ApiResponse(true, "Duty slip created successfully", dutySlip, statusCode: 201);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating duty slip");
-                return ApiResponse(false, "Error creating duty slip", error: ex.Message);
+                return ApiResponse(false, "Error creating duty slip", error: ex.Message, statusCode: 500);
             }
         }
-        
-        //=========================================
+
         // ================= ASSIGN DRIVER =================
-        //=========================================
         [HttpPut("{id}/assign-driver")]
         public async Task<IActionResult> AssignDriver(int id, [FromBody] UpdateAssignDriverDto dto)
         {
+            var firmId = GetFirmIdFromToken();
+            if (firmId == null)
+                return ApiResponse(false, "Unauthorized", statusCode: 401);
+
             var dutySlip = await _context.DutySlips
-          .FirstOrDefaultAsync(x => x.DutySlipId == id && !x.IsDeleted);
+                .FirstOrDefaultAsync(x => x.DutySlipId == id && x.FirmId == firmId && !x.IsDeleted);
 
             if (dutySlip == null)
-                return ApiResponse(false, "Duty slip not found");
-            dutySlip.DriverId = dto.DriverId;
+                return ApiResponse(false, "Duty slip not found", statusCode: 404);
+
+            dutySlip.DriverDetailId = dto.DriverDetailId;
             dutySlip.ReportingAddress = dto.ReportingAddress;
             dutySlip.ReportingDateTime = dto.ReportingDateTime;
             dutySlip.SentCab = dto.SentCab;
@@ -93,229 +107,159 @@ namespace cab_management.Controllers
 
             await _context.SaveChangesAsync();
 
-            //  RETURN UPDATED DATA
-            var response = new DutySlipResponseDto
-            {
-                DutySlipId = dutySlip.DutySlipId,
-                DriverId = dutySlip.DriverId,
-                ReportingAddress = dutySlip.ReportingAddress,
-                ReportingDateTime = dutySlip.ReportingDateTime,
-                SentCab = dutySlip.SentCab,
-                CabNumber=dutySlip.CabNumber,
-                Status = dutySlip.Status,
-                UpdatedAt = dutySlip.UpdatedAt
-            };
-
-
-            return ApiResponse(true, "Driver updated successfully", response);
+            return ApiResponse(true, "Driver assigned successfully");
         }
-        
-        //=========================================
-        // ================= START JOURNEY ========
-        //=========================================
+
+        // ================= START JOURNEY =================
         [HttpPut("{id}/start-journey")]
         public async Task<IActionResult> StartJourney(int id, [FromBody] UpdateStartJourneyDto dto)
         {
+            var firmId = GetFirmIdFromToken();
+            if (firmId == null)
+                return ApiResponse(false, "Unauthorized", statusCode: 401);
+
             var dutySlip = await _context.DutySlips
-               .FirstOrDefaultAsync(x => x.DutySlipId == id && !x.IsDeleted);
+                .FirstOrDefaultAsync(x => x.DutySlipId == id && x.FirmId == firmId && !x.IsDeleted);
+
             if (dutySlip == null)
-                return ApiResponse(true, "Duty slip not found");
+                return ApiResponse(false, "Duty slip not found", statusCode: 404);
+
             dutySlip.ReportingGeoLocation = dto.ReportingGeoLocation;
             dutySlip.StartKms = dto.StartKms;
             dutySlip.StartKmsImagePath = dto.StartKmsImagePath;
             dutySlip.StartDateTime = dto.StartDateTime;
-            dutySlip.Status = "Start Journey";
+            dutySlip.Status = "Start-Journey";
             dutySlip.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
-            var response = new DutySlipResponseDto
-            {
-                DutySlipId = dutySlip.DutySlipId,
-                ReportingGeoLocation=dutySlip.ReportingGeoLocation,
-                StartKms=dutySlip.StartKms,
-                StartKmsImagePath=dutySlip.StartKmsImagePath,
-                StartDateTime=dutySlip.StartDateTime,
-                Status=dutySlip.Status,
-                UpdatedAt=dutySlip.UpdatedAt
-                
-            };
-
-            return ApiResponse(true, "Journey started successfully",response);
-
-
+            return ApiResponse(true, "Journey started successfully");
         }
-        
-        //=========================================
-        // ================= END JOURNEY ==========
-        //=========================================
+
+        // ================= END JOURNEY =================
         [HttpPut("{id}/end-journey")]
         public async Task<IActionResult> EndJourney(int id, [FromBody] UpdateEndJourneyDto dto)
         {
-            var dutSlip = await _context.DutySlips.
-                FirstOrDefaultAsync(x => x.DutySlipId == id && !x.IsDeleted);
-            if (dutSlip == null)
-                return ApiResponse(false, "duty slip not found");
-            dutSlip.CloseKms = dto.CloseKms;
-            dutSlip.CloseKmsImagePath = dto.CloseKmsImagePath;
-            dutSlip.CloseDateTime = dto.CloseDateTime;
-            dutSlip.TotalKms = dto.TotalKms;
-            dutSlip.TotalTimeInMin = dto.TotalTimeInMin;
-            dutSlip.Status = "End Journey";
-            dutSlip.UpdatedAt = DateTime.UtcNow;
+            var firmId = GetFirmIdFromToken();
+            if (firmId == null)
+                return ApiResponse(false, "Unauthorized", statusCode: 401);
+
+            var dutySlip = await _context.DutySlips
+                .FirstOrDefaultAsync(x => x.DutySlipId == id && x.FirmId == firmId && !x.IsDeleted);
+
+            if (dutySlip == null)
+                return ApiResponse(false, "Duty slip not found", statusCode: 404);
+
+            dutySlip.CloseKms = dto.CloseKms;
+            dutySlip.CloseKmsImagePath = dto.CloseKmsImagePath;
+            dutySlip.CloseDateTime = dto.CloseDateTime;
+            dutySlip.TotalKms = dto.TotalKms;
+            dutySlip.TotalTimeInMin = dto.TotalTimeInMin;
+            dutySlip.Status = "End-Journey";
+            dutySlip.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-            var response = new DutySlipResponseDto
-            {
-                DutySlipId = dutSlip.DutySlipId,
-                CloseKms = dutSlip.CloseKms,
-                CloseKmsImagePath = dutSlip.CloseKmsImagePath,
-                TotalKms = dutSlip.TotalKms,
-                TotalTimeInMin = dutSlip.TotalTimeInMin,
-                Status = dutSlip.Status,
-                UpdatedAt = dutSlip.UpdatedAt
-            };
-            return ApiResponse(true, "Journey ended successfully",response);
-             
+
+            return ApiResponse(true, "Journey ended successfully");
         }
-       
-        //=========================================
-        // ================= INSTRUCTION ==========
-        //=========================================
+
+        // ================= INSTRUCTION =================
         [HttpPut("{id}/instruction")]
-        public async Task<IActionResult> UpdateInstruction(int id, [FromBody]UpdateInstructionDto dto)
+        public async Task<IActionResult> UpdateInstruction(int id, [FromBody] UpdateInstructionDto dto)
         {
-            var dutySlip = await _context.DutySlips.FirstOrDefaultAsync(x => x.DutySlipId == id && !x.IsDeleted);
-            if(dutySlip==null)
-            return ApiResponse(false, "Duty Slip not found");
+            var firmId = GetFirmIdFromToken();
+            if (firmId == null)
+                return ApiResponse(false, "Unauthorized", statusCode: 401);
+
+            var dutySlip = await _context.DutySlips
+                .FirstOrDefaultAsync(x => x.DutySlipId == id && x.FirmId == firmId && !x.IsDeleted);
+
+            if (dutySlip == null)
+                return ApiResponse(false, "Duty slip not found", statusCode: 404);
+
             dutySlip.NextDayInstruction = dto.NextDayInstruction;
             dutySlip.Status = "Instructed";
-            dutySlip.UpdatedAt = dto.UpdatedAt;
+            dutySlip.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
-            var response = new DutySlipResponseDto
-            {
-                DutySlipId = dutySlip.DutySlipId,
-                NextDayInstruction = dutySlip.NextDayInstruction,
-                Status=dutySlip.Status,
-                UpdatedAt = dutySlip.UpdatedAt
-            };
-            return ApiResponse(false, "Instruction Updated sucessfully",response);
-            
+
+            return ApiResponse(true, "Instruction updated successfully");
         }
-        
-        //=========================================
-        // ================= Billing ==============
-        //=========================================
+
+        // ================= BILLING =================
         [HttpPut("{id}/billing")]
-
-        public async Task<IActionResult> Billing(int id,[FromBody] UpdateBillingDto dto)
+        public async Task<IActionResult> Billing(int id, [FromBody] UpdateBillingDto dto)
         {
-            var dutySlip=await _context.DutySlips
-                .FirstOrDefaultAsync(x => x.DutySlipId == id && !x.IsDeleted);
+            var firmId = GetFirmIdFromToken();
+            if (firmId == null)
+                return ApiResponse(false, "Unauthorized", statusCode: 401);
 
-            if(dutySlip==null)
-            
-                return ApiResponse(false, "duty slip not found");
+            var dutySlip = await _context.DutySlips
+                .FirstOrDefaultAsync(x => x.DutySlipId == id && x.FirmId == firmId && !x.IsDeleted);
+
+            if (dutySlip == null)
+                return ApiResponse(false, "Duty slip not found", statusCode: 404);
 
             dutySlip.PaymentMode = dto.PaymentMode;
             dutySlip.Status = "Bill-Pending";
             dutySlip.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
-            var response = new DutySlipResponseDto
-            {
-                DutySlipId = dutySlip.DutySlipId,
-                PaymentMode = dutySlip.PaymentMode,
-                Status = dutySlip.Status,
-                UpdatedAt = dutySlip.UpdatedAt
-            };
-            return ApiResponse(true, "Billing updated successfully", response);
+
+            return ApiResponse(true, "Billing updated successfully");
         }
 
-
-
-
-
-
-
-        //=========================================
-        // ================= GET ALL DATA BY ID ====
-        //=========================================
-
-        private async Task<List<DutySlipResponseDto>> GetDutySlipsInternal(
-        int? firmId = null,
-        int? driverId = null,
-        int? customerId = null,
-        int? dutySlipId = null)
+        // ================= GET ALL DUTY SLIPS (Firm-wise) =================
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
         {
-            IQueryable<DutySlip> query = _context.DutySlips
-                .Where(x => !x.IsDeleted);
+            var firmId = GetFirmIdFromToken();
+            if (firmId == null)
+                return ApiResponse(false, "Unauthorized", statusCode: 401);
 
-            if (firmId.HasValue)
-                query = query.Where(x => x.FirmId == firmId.Value);
-
-            else if (driverId.HasValue)
-                query = query.Where(x => x.DriverId == driverId.Value);
-
-            else if (customerId.HasValue)
-                query = query.Where(x => x.CustomerId == customerId.Value);
-
-            else if (dutySlipId.HasValue)
-                query = query.Where(x => x.DutySlipId == dutySlipId.Value);
-
-            return await query
+            var dutySlips = await _context.DutySlips
+                .Include(x => x.Firm)
+                .Include(x => x.Customer)
+                .Include(x => x.DriverDetail)
+                .Include(x => x.RequestedCabNav)
+                .Include(x => x.SentCabNav)
+                .Where(x => x.FirmId == firmId && !x.IsDeleted)
+                .OrderByDescending(x => x.CreatedAt)
                 .Select(x => new DutySlipResponseDto
                 {
                     DutySlipId = x.DutySlipId,
-                    DriverId = x.DriverId,
-                    ReportingAddress = x.ReportingAddress,
-                    ReportingDateTime = x.ReportingDateTime,
+
+                    BookedDate = x.BookedDate,
+                    BookedBy = x.BookedBy,
+
+                    FirmId = x.FirmId,
+                    FirmName = x.Firm.FirmName,
+
+                    CustomerId = x.CustomerId,
+                    CustomerName = x.Customer.CustomerName,
+
+                    DriverDetailId = x.DriverDetailId,
+                    DriverName = x.DriverDetail != null ? x.DriverDetail.DriverName : null,
+
+                    RequestedCab = x.RequestedCab,
+                    RequestedCabType = x.RequestedCabNav != null
+                        ? x.RequestedCabNav.CabType
+                        : null,
+
                     SentCab = x.SentCab,
-                    CabNumber = x.CabNumber,
-                    ReportingGeoLocation = x.ReportingGeoLocation,
-                    StartKms = x.StartKms,
-                    StartKmsImagePath = x.StartKmsImagePath,
-                    StartDateTime = x.StartDateTime,
-                    CloseKms = x.CloseKms,
-                    CloseKmsImagePath = x.CloseKmsImagePath,
-                    CloseDateTime = x.CloseDateTime,
-                    TotalKms = x.TotalKms,
-                    TotalTimeInMin = x.TotalTimeInMin,
-                    NextDayInstruction = x.NextDayInstruction,
-                    PaymentMode = x.PaymentMode,
+                    SentCabType = x.SentCabNav != null
+                        ? x.SentCabNav.CabType
+                        : null,
+
+                    Destination = x.Destination,
                     Status = x.Status,
-                    UpdatedAt = x.UpdatedAt
+
+                    CreatedAt = x.CreatedAt
                 })
                 .ToListAsync();
-        }
 
-        [HttpGet("get-all-data-by-firmid/{firmId}")]
-        public async Task<IActionResult> GetAllByFirmId(int firmId)
-        {
-            var result = await GetDutySlipsInternal(firmId: firmId);
-            return ApiResponse(true, "Data fetched by FirmId", result);
+            return ApiResponse(true, "Duty slips fetched successfully", dutySlips);
         }
-
-        [HttpGet("get-all-data-by-driverid/{driverId}")]
-        public async Task<IActionResult> GetAllByDriverId(int driverId)
-        {
-            var result = await GetDutySlipsInternal(driverId: driverId);
-            return ApiResponse(true, "Data fetched by DriverId", result);
-        }
-        [HttpGet("get-all-data-by-customerid/{customerId}")]
-        public async Task<IActionResult> GetAllByCustomerId(int customerId)
-        {
-            var result = await GetDutySlipsInternal(customerId: customerId);
-            return ApiResponse(true, "Data fetched by CustomerId", result);
-        }
-        [HttpGet("get-all-data-by-dutyslipid/{dutySlipId}")]
-        public async Task<IActionResult> GetByDutySlipId(int dutySlipId)
-        {
-            var result = await GetDutySlipsInternal(dutySlipId: dutySlipId);
-            return ApiResponse(true, "Data fetched by DutySlipId", result);
-        }
-
-
-
 
 
     }
