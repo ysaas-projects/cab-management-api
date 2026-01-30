@@ -262,32 +262,43 @@ CREATE TABLE CabPrices
 CREATE TABLE DutySlips
 (
     DutySlipId INT IDENTITY PRIMARY KEY,
-    BookedDate DATE NOT NULL,
-    BookedBy INT NOT NULL,          
+
+    BookedDate DATETIME NOT NULL,
+    BookedBy INT NOT NULL,
+
     FirmId INT NOT NULL,
     CustomerId INT NOT NULL,
+
     ReportingDateTime DATETIME NULL,
-    ReportingAddress VARCHAR(MAX),
-    ReportingGeolocation VARCHAR(100),  
-    RequestedCab VARCHAR(100),
-    SentCab VARCHAR(100),
-    CabNumber VARCHAR(20),
-    DriverId INT NULL,
-    PaymentMode VARCHAR(50),
-    StartKms FLOAT,
-    StartKmsImagePath VARCHAR(MAX),
-    StartDateTime DATETIME,
-    CloseKms FLOAT,
-    CloseKmsImagePath VARCHAR(MAX),
-	CloseDateTime DATETIME,
-	TotalKms FLOAT,
-	TotalTimeInMin INT,
-	NextDayInstruction VARCHAR(250),
-	Destination VARCHAR(200),
-	Status VARCHAR(50),
+    ReportingAddress VARCHAR(500) NULL,
+    ReportingGeoLocation VARCHAR(255) NULL,
+
+    RequestedCab INT NULL,
+    SentCab INT NULL,
+
+    CabNumber VARCHAR(50) NULL,
+    DriverDetailId INT NULL,
+
+    PaymentMode VARCHAR(50) NULL,
+
+    StartKms DECIMAL(10,2) NULL,
+    StartKmsImagePath VARCHAR(255) NULL,
+    StartDateTime DATETIME NULL,
+
+    CloseKms DECIMAL(10,2) NULL,
+    CloseKmsImagePath VARCHAR(255) NULL,
+    CloseDateTime DATETIME NULL,
+
+    TotalKms DECIMAL(10,2) NULL,
+    TotalTimeInMin INT NULL,
+
+    NextDayInstruction VARCHAR(500) NULL,
+    Destination VARCHAR(255) NULL,
+
+    Status VARCHAR(50) NULL,
+
     CreatedAt DATETIME DEFAULT GETDATE(),
     UpdatedAt DATETIME NULL,
+
     IsDeleted BIT DEFAULT 0
-    -- CONSTRAINT FK_DuetySleeps_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId),
-    -- CONSTRAINT FK_DuetySleeps_Customers FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId)
 );
