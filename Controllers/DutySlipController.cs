@@ -250,7 +250,8 @@ namespace cab_management.Controllers
                     SentCabType = x.SentCabNav != null
                         ? x.SentCabNav.CabType
                         : null,
-
+                    StartKms = x.StartKms,
+                    StartDateTime = x.StartDateTime,
                     Destination = x.Destination,
                     Status = x.Status,
 
