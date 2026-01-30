@@ -56,7 +56,7 @@ namespace cab_management.Controllers
                     {
                         CustomerId = c.CustomerId,
                         FirmId = c.FirmId,
-                        FirmName = c.Firm.FirmName,
+                        FirmName = c.Firm != null ? c.Firm.FirmName : null,
                         CustomerName = c.CustomerName,
                         Address = c.Address,
                         GstNumber = c.GstNumber,
@@ -98,7 +98,7 @@ namespace cab_management.Controllers
                     {
                         CustomerId = c.CustomerId,
                         FirmId = c.FirmId,
-                        FirmName = c.Firm.FirmName,
+                        FirmName = c.Firm != null ? c.Firm.FirmName : null,
                         CustomerName = c.CustomerName,
                         Address = c.Address,
                         GstNumber = c.GstNumber,
@@ -122,7 +122,9 @@ namespace cab_management.Controllers
             }
         }
 
-
+        // =============================
+        // GET CUSTOMERS (PAGINATED)
+        // =============================
         [HttpGet("paginated")]
         public async Task<IActionResult> GetCustomersPaginated(
             int pageNumber = 1,
@@ -145,7 +147,7 @@ namespace cab_management.Controllers
 
                 if (!string.IsNullOrWhiteSpace(search))
                 {
-                    search = search.ToLower().Trim();
+                    search = search.Trim().ToLower();
                     query = query.Where(c => c.CustomerName.ToLower().Contains(search));
                 }
 
@@ -162,7 +164,7 @@ namespace cab_management.Controllers
                     {
                         CustomerId = c.CustomerId,
                         FirmId = c.FirmId,
-                        FirmName = c.Firm.FirmName,
+                        FirmName = c.Firm != null ? c.Firm.FirmName : null,
                         CustomerName = c.CustomerName,
                         Address = c.Address,
                         GstNumber = c.GstNumber,
@@ -190,8 +192,11 @@ namespace cab_management.Controllers
             }
         }
 
-       
+        // =============================
+        // CREATE CUSTOMER
+        // =============================
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> CreateCustomer([FromForm] CustomerCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -212,7 +217,7 @@ namespace cab_management.Controllers
                     return ApiResponse(false, "Customer already exists");
 
                 string? logoPath = null;
-                if (dto.LogoImage != null)
+                if (dto.LogoImage != null && dto.LogoImage.Length > 0)
                 {
                     var folder = Path.Combine(_env.WebRootPath, "images/customers");
                     Directory.CreateDirectory(folder);
@@ -242,7 +247,20 @@ namespace cab_management.Controllers
                 _context.Customers.Add(customer);
                 await _context.SaveChangesAsync();
 
-                return ApiResponse(true, "Customer created successfully", customer);
+                return ApiResponse(true, "Customer created successfully", new CustomerResponseDto
+                {
+                    CustomerId = customer.CustomerId,
+                    FirmId = customer.FirmId,
+                    FirmName = null,
+                    CustomerName = customer.CustomerName,
+                    Address = customer.Address,
+                    GstNumber = customer.GstNumber,
+                    LogoImagePath = customer.LogoImagePath,
+                    IsActive = customer.IsActive,
+                    IsDeleted = customer.IsDeleted,
+                    CreatedAt = customer.CreatedAt,
+                    UpdatedAt = customer.UpdatedAt
+                });
             }
             catch (Exception ex)
             {
@@ -256,10 +274,7 @@ namespace cab_management.Controllers
         // =============================
         [HttpPut("{id}")]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> UpdateCustomer(
-    int id,
-    [FromForm] CustomerUpdateDto dto
-)
+        public async Task<IActionResult> UpdateCustomer(int id, [FromForm] CustomerUpdateDto dto)
         {
             try
             {
@@ -281,8 +296,7 @@ namespace cab_management.Controllers
                 customer.GstNumber = dto.GstNumber;
                 customer.IsActive = dto.IsActive;
 
-                // ✅ HANDLE LOGO UPDATE
-                if (dto.LogoImage != null)
+                if (dto.LogoImage != null && dto.LogoImage.Length > 0)
                 {
                     var folder = Path.Combine(_env.WebRootPath, "images/customers");
                     Directory.CreateDirectory(folder);
@@ -300,7 +314,7 @@ namespace cab_management.Controllers
                 customer.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
-                return ApiResponse(true, "Customer updated successfully", customer);
+                return ApiResponse(true, "Customer updated successfully");
             }
             catch (Exception ex)
             {
