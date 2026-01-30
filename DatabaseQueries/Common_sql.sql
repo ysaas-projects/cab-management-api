@@ -302,3 +302,19 @@ CREATE TABLE DutySlips
 
     IsDeleted BIT DEFAULT 0
 );
+
+
+CREATE TABLE DutyExpenses
+(
+    DutyExpenseId INT IDENTITY PRIMARY KEY,
+    FirmId INT NULL,
+    DutyId INT NOT NULL,   -- Foreign Key (Duty table)
+    ExpenseType VARCHAR(100) NOT NULL,
+    Description VARCHAR(500) NULL,
+    ExpenseAmount VARCHAR(100) NOT NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0
+);
+-- CONSTRAINT FK_DutyExpenses_Duties
+--CONSTRAINT FK_DutyExpenses_Duties FOREIGN KEY (DutyId) REFERENCES Duties(DutyId)

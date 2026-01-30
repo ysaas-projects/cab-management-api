@@ -1,11 +1,18 @@
 ﻿using cab_management.Data;
 using cab_management.Models;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace cab_management.Controllers
 {
-    [Route("api/[controller]")]
+	[Authorize(AuthenticationSchemes =
+		CookieAuthenticationDefaults.AuthenticationScheme + "," +
+		JwtBearerDefaults.AuthenticationScheme)]
+	[Route("api/[controller]")]
     [ApiController]
     public class DutyExpenseController : BaseApiController
     {
@@ -16,16 +23,31 @@ namespace cab_management.Controllers
             _context = context;
         }
 
-        // =====================================================
-        // GET ALL DutyExpense
-        // =====================================================
-        [HttpGet]
+		private int? GetFirmIdFromToken()
+		{
+			var firmIdStr = User.FindFirstValue("firmId");
+			return int.TryParse(firmIdStr, out var firmId) ? firmId : null;
+		}
+
+		private int GetUserIdFromToken()
+		{
+			return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+		}
+
+		// =====================================================
+		// GET ALL DutyExpense
+		// =====================================================
+		[HttpGet]
         public async Task<IActionResult> GetAllDutyExpense()
         {
             try
             {
-                var dutyExpense = await _context.DutyExpenses
-                    .Where(d => d.IsDeleted != true)
+				var firmId = GetFirmIdFromToken();
+				if (firmId == null)
+					return ApiResponse(false, "Unauthorized", statusCode: 401);
+
+				var dutyExpense = await _context.DutyExpenses
+                    .Where(d => d.IsDeleted != true && d.FirmId == firmId)
                     .ToListAsync();
 
                 return ApiResponse(true, "DutyExpense retrieved successfully", dutyExpense);
@@ -44,8 +66,13 @@ namespace cab_management.Controllers
         {
             try
             {
-                var d = await _context.DutyExpenses
-                    .FirstOrDefaultAsync(x => x.DutyExpenseId == id && x.IsDeleted == false);
+
+				var firmId = GetFirmIdFromToken();
+				if (firmId == null)
+					return ApiResponse(false, "Unauthorized", statusCode: 401);
+
+				var d = await _context.DutyExpenses
+                    .FirstOrDefaultAsync(x => x.DutyExpenseId == id && x.IsDeleted == false && x.FirmId == firmId);
 
                 if (d != null)
                 {
@@ -70,7 +97,11 @@ namespace cab_management.Controllers
         {
             try
             {
-                if (!ModelState.IsValid)
+				var firmId = GetFirmIdFromToken();
+				if (firmId == null)
+					return ApiResponse(false, "Unauthorized", statusCode: 401);
+
+				if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values
                         .SelectMany(v => v.Errors)
@@ -82,7 +113,8 @@ namespace cab_management.Controllers
 
                 DutyExpense dutyExpense = new DutyExpense
                 {
-                    DutyId = dto.DutyId,
+                    FirmId = firmId,
+					DutyId = dto.DutyId,
                     ExpenseType = dto.ExpenseType,
                     Description = dto.Description,
                     ExpenseAmount = dto.ExpenseAmount,
@@ -108,9 +140,13 @@ namespace cab_management.Controllers
         {
             try
             {
-                var d = await _context.DutyExpenses.FindAsync(id);
+				var firmId = GetFirmIdFromToken();
+				if (firmId == null)
+					return ApiResponse(false, "Unauthorized", statusCode: 401);
 
-                if (d == null || d.IsDeleted == true)
+				var d = await _context.DutyExpenses.FindAsync(id);
+
+                if (d == null || d.IsDeleted == true || d.FirmId != firmId)
                 {
                     return ApiResponse(false, "Record not found", 404);
                 }
@@ -149,8 +185,13 @@ namespace cab_management.Controllers
         {
             try
             {
-                var d = await _context.DutyExpenses
-                    .FirstOrDefaultAsync(e => e.DutyExpenseId == id && e.IsDeleted == false);
+
+				var firmId = GetFirmIdFromToken();
+				if (firmId == null)
+					return ApiResponse(false, "Unauthorized", statusCode: 401);
+
+				var d = await _context.DutyExpenses
+                    .FirstOrDefaultAsync(e => e.DutyExpenseId == id && e.IsDeleted == false && e.FirmId == firmId);
 
                 if (d == null)
                 {

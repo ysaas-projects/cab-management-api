@@ -12,8 +12,9 @@ namespace cab_management.Models
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int DutyExpenseId { get; set; }
+		public int? FirmId { get; set; }
 
-        [Required]
+		[Required]
         public int DutyId { get; set; }
 
         [Required(ErrorMessage = "Expense type is required")]
