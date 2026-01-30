@@ -139,11 +139,12 @@ namespace cab_management.Controllers
                 if (firmId == null || userId == null)
                     return Unauthorized("Invalid token");
 
-                if (string.IsNullOrWhiteSpace(dto.MobileNumber) || dto.MobileNumber.Length < 4)
-                    return ApiResponse(false, "Validation failed", "MobileNumber must be at least 4 digits");
+                var firm = await _context.Firms.FirstOrDefaultAsync(f => f.FirmId == firmId.Value && !f.IsDeleted);
+                if (firm == null)
+                    return ApiResponse(false, "Firm not found", null);
 
                 var last4 = dto.MobileNumber[^4..];
-                var driverUsername = $"{dto.DriverName}-DR-{last4}";
+                var driverUsername = $"{firm.FirmCode}-DR-{last4}";
 
                 await using var tx = await _context.Database.BeginTransactionAsync();
 
