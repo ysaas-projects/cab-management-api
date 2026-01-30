@@ -302,3 +302,18 @@ CREATE TABLE DutySlips
 
     IsDeleted BIT DEFAULT 0
 );
+
+
+CREATE TABLE CustomerUsers
+(
+CustomerUserId INT IDENTITY PRIMARY KEY,
+CustomerId INT NOT NULL,
+FirmId INT NULL,
+UserName VARCHAR(100),
+MobileNumber VARCHAR(20) NULL, --Standardized length     
+IsActive BIT DEFAULT 1,
+CreatedAt DATETIME DEFAULT GETDATE(),
+UpdatedAt DATETIME NULL,
+IsDeleted BIT DEFAULT 0
+--CONSTRAINT FK_CustomerUsers_Customer FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId)
+)
