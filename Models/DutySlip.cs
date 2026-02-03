@@ -98,8 +98,26 @@ namespace cab_management.Models
     }
 
 
-    // ===================== CREATE DTO =====================
-    public class CreateDutySlipDto
+	public class DutyExpenseDto
+	{
+		public int DutyExpenseId { get; set; }
+		public int DutyId { get; set; }
+		public string ExpenseType { get; set; }
+		public string? Description { get; set; }
+		public string ExpenseAmount { get; set; }
+		public DateTime CreatedAt { get; set; }
+	}
+
+	public class DutySlipWithExpensesDto
+	{
+		public DutySlipResponseDto DutySlip { get; set; }
+		public List<DutyExpenseDto> Expenses { get; set; } = new();
+		public decimal TotalExpenseAmount { get; set; }
+	}
+
+
+	// ===================== CREATE DTO =====================
+	public class CreateDutySlipDto
     {
         [Required]
         public DateTime BookedDate { get; set; }

@@ -81,9 +81,12 @@ CREATE TABLE Roles
     IsDeleted BIT DEFAULT 0
 );
 
+
+
 CREATE TABLE UserRoles
 (
     UserRoleId INT IDENTITY(1,1) PRIMARY KEY,
+	FirmId INT NULL,
     UserId INT NOT NULL,
     RoleId SMALLINT NOT NULL,
     CreatedAt DATETIME DEFAULT GETDATE(),
@@ -240,3 +243,78 @@ UpdatedAt DATETIME NULL,
 IsDeleted BIT DEFAULT 0
 -- CONSTRAINT FK_FirmTerms_Firms FOREIGN KEY (FirmId) REFERENCES Firms(FirmId)
 );
+
+
+CREATE TABLE CabPrices
+(
+    CabPriceId INT IDENTITY(1,1) PRIMARY KEY,
+    FirmId INT NOT NULL,
+    CabId INT NOT NULL,
+    PricingRuleId INT NOT NULL,
+    Price DECIMAL(10,2) NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0
+);
+
+--------------------DutySlip-----------------------
+CREATE TABLE DutySlips
+(
+    DutySlipId INT IDENTITY PRIMARY KEY,
+
+    BookedDate DATETIME NOT NULL,
+    BookedBy INT NOT NULL,
+
+    FirmId INT NOT NULL,
+    CustomerId INT NOT NULL,
+
+    ReportingDateTime DATETIME NULL,
+    ReportingAddress VARCHAR(500) NULL,
+    ReportingGeoLocation VARCHAR(255) NULL,
+
+    RequestedCab INT NULL,
+    SentCab INT NULL,
+
+    CabNumber VARCHAR(50) NULL,
+    DriverDetailId INT NULL,
+
+    PaymentMode VARCHAR(50) NULL,
+
+    StartKms DECIMAL(10,2) NULL,
+    StartKmsImagePath VARCHAR(255) NULL,
+    StartDateTime DATETIME NULL,
+
+    CloseKms DECIMAL(10,2) NULL,
+    CloseKmsImagePath VARCHAR(255) NULL,
+    CloseDateTime DATETIME NULL,
+
+    TotalKms DECIMAL(10,2) NULL,
+    TotalTimeInMin INT NULL,
+
+    NextDayInstruction VARCHAR(500) NULL,
+    Destination VARCHAR(255) NULL,
+
+    Status VARCHAR(50) NULL,
+
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+
+    IsDeleted BIT DEFAULT 0
+);
+
+
+CREATE TABLE DutyExpenses
+(
+    DutyExpenseId INT IDENTITY PRIMARY KEY,
+    FirmId INT NULL,
+    DutyId INT NOT NULL,   -- Foreign Key (Duty table)
+    ExpenseType VARCHAR(100) NOT NULL,
+    Description VARCHAR(500) NULL,
+    ExpenseAmount VARCHAR(100) NOT NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0
+);
+-- CONSTRAINT FK_DutyExpenses_Duties
+--CONSTRAINT FK_DutyExpenses_Duties FOREIGN KEY (DutyId) REFERENCES Duties(DutyId)

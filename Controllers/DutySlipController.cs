@@ -250,7 +250,8 @@ namespace cab_management.Controllers
                     SentCabType = x.SentCabNav != null
                         ? x.SentCabNav.CabType
                         : null,
-
+                    StartKms = x.StartKms,
+                    StartDateTime = x.StartDateTime,
                     Destination = x.Destination,
                     Status = x.Status,
 
@@ -262,5 +263,110 @@ namespace cab_management.Controllers
         }
 
 
-    }
+		// ================= GET DUTY SLIP + EXPENSES =================
+		[HttpGet("{dutySlipId}/details")]
+		public async Task<IActionResult> GetDutySlipWithExpenses(int dutySlipId)
+		{
+			var firmId = GetFirmIdFromToken();
+			if (firmId == null)
+				return ApiResponse(false, "Unauthorized", statusCode: 401);
+
+			// ------------------ DUTY SLIP ------------------
+			var dutySlip = await _context.DutySlips
+				.Include(x => x.Firm)
+				.Include(x => x.Customer)
+				.Include(x => x.DriverDetail)
+				.Include(x => x.RequestedCabNav)
+				.Include(x => x.SentCabNav)
+				.Where(x =>
+					x.DutySlipId == dutySlipId &&
+					x.FirmId == firmId &&
+					!x.IsDeleted
+				)
+				.Select(x => new DutySlipResponseDto
+				{
+					DutySlipId = x.DutySlipId,
+
+					BookedDate = x.BookedDate,
+					BookedBy = x.BookedBy,
+
+					FirmId = x.FirmId,
+					FirmName = x.Firm.FirmName,
+
+					CustomerId = x.CustomerId,
+					CustomerName = x.Customer.CustomerName,
+
+					DriverDetailId = x.DriverDetailId,
+					DriverName = x.DriverDetail != null
+						? x.DriverDetail.DriverName
+						: null,
+
+					RequestedCab = x.RequestedCab,
+					RequestedCabType = x.RequestedCabNav != null
+						? x.RequestedCabNav.CabType
+						: null,
+
+					SentCab = x.SentCab,
+					SentCabType = x.SentCabNav != null
+						? x.SentCabNav.CabType
+						: null,
+
+					StartKms = x.StartKms,
+					StartDateTime = x.StartDateTime,
+
+                    CloseKms = x.CloseKms,
+                    CloseDateTime = x.CloseDateTime,
+
+                    TotalKms = x.TotalKms,
+                    TotalTimeInMin = x.TotalTimeInMin,
+
+					Destination = x.Destination,
+					Status = x.Status,
+
+					CreatedAt = x.CreatedAt
+				})
+				.FirstOrDefaultAsync();
+
+			if (dutySlip == null)
+				return ApiResponse(false, "Duty slip not found", statusCode: 404);
+
+			// ------------------ EXPENSES ------------------
+			var expenses = await _context.DutyExpenses
+				.Where(x =>
+					x.DutyId == dutySlipId &&
+					x.FirmId == firmId &&
+					!x.IsDeleted
+				)
+				.Select(x => new DutyExpenseDto
+				{
+					DutyExpenseId = x.DutyExpenseId,
+					DutyId = x.DutyId,
+					ExpenseType = x.ExpenseType,
+					Description = x.Description,
+					ExpenseAmount = x.ExpenseAmount,
+					CreatedAt = x.CreatedAt
+				})
+				.ToListAsync();
+
+			// ------------------ TOTAL ------------------
+			decimal totalExpense = expenses.Sum(x =>
+				decimal.TryParse(x.ExpenseAmount, out var amt)
+					? amt
+					: 0
+			);
+
+			// ------------------ RESPONSE ------------------
+			var result = new DutySlipWithExpensesDto
+			{
+				DutySlip = dutySlip,
+				Expenses = expenses,
+				TotalExpenseAmount = totalExpense
+			};
+
+			return ApiResponse(true, "Duty slip details fetched", result);
+		}
+
+
+
+	}
 }

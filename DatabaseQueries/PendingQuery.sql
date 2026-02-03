@@ -70,3 +70,47 @@ CREATE TABLE CabPrices
     UpdatedAt DATETIME NULL,
     IsDeleted BIT NOT NULL DEFAULT 0
 );
+
+
+CREATE TABLE TourPackages (
+    PackageId       INT IDENTITY PRIMARY KEY,
+    FirmId        INT NOT NULL,
+    PackageName     NVARCHAR(200) NOT NULL,
+    Description     NVARCHAR(MAX),
+    Location        NVARCHAR(200),
+    DurationDays    INT,
+    DurationNights  INT,
+    BasePrice       DECIMAL(10,2),
+    IsActive        BIT DEFAULT 1,
+    CreatedAt       DATETIME DEFAULT GETDATE(),
+    UpdatedAt    DATETIME NULL,
+    IsDeleted BIT DEFAULT 0
+    -- CONSTRAINT FK_TourPackages_Tenants
+   --     FOREIGN KEY (TenantId) REFERENCES Tenants(TenantId)
+);
+
+CREATE TABLE Seasons (
+    SeasonId        INT IDENTITY PRIMARY KEY,
+    FirmId        INT NOT NULL,
+    SeasonName      NVARCHAR(100), -- Peak / Off-Season / Monsoon / Festival
+    StartDate       DATE,
+    EndDate         DATE,
+    IsActive        BIT DEFAULT 1,
+    CreatedAt       DATETIME DEFAULT GETDATE(),
+    UpdatedAt    DATETIME NULL,
+    IsDeleted BIT DEFAULT 0
+    -- CONSTRAINT FK_Seasons_Tenants
+     --   FOREIGN KEY (TenantId) REFERENCES Tenants(TenantId)
+);
+
+CREATE TABLE PackagePricings (
+    PricingId       INT IDENTITY PRIMARY KEY,
+    PackageId       INT NOT NULL,
+    DayType         VARCHAR(20) CHECK (DayType IN ('Weekday','Weekend')),
+    PricePerPerson  DECIMAL(10,2),
+    MinPersons      INT DEFAULT 1,
+    CreatedAt       DATETIME DEFAULT GETDATE(),
+    IsDeleted BIT DEFAULT 0
+    -- CONSTRAINT FK_PackagePricing_Package
+     --   FOREIGN KEY (PackageId) REFERENCES TourPackages(PackageId)
+);
