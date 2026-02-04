@@ -176,5 +176,39 @@ namespace cab_management.Controllers
 
             return ApiResponse(true, "Package pricing deleted successfully");
         }
+
+
+        // ===============================
+        // GET PACKAGE PRICING BY ID
+        // ===============================
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var pricing = await _context.PackagePricings
+                .Include(x => x.TourPackage)
+                .Where(x => x.PricingId == id && !x.IsDeleted)
+                .Select(x => new PackagePricingResponseDto
+                {
+                    PricingId = x.PricingId,
+
+                    PackageId = x.PackageId,
+                    PackageName = x.TourPackage!.PackageName,
+
+                    DayType = x.DayType,
+                    PricePerPerson = x.PricePerPerson,
+                    MinPersons = x.MinPersons,
+
+                    IsDeleted = x.IsDeleted,
+                    CreatedAt = x.CreatedAt,
+                    UpdatedAt = x.UpdatedAt
+                })
+                .FirstOrDefaultAsync();
+
+            if (pricing == null)
+                return ApiResponse(false, "Package pricing not found", 404);
+
+            return ApiResponse(true, "Package pricing fetched successfully", pricing);
+        }
+
     }
 }
