@@ -304,6 +304,21 @@ CREATE TABLE DutySlips
 );
 
 
+CREATE TABLE CustomerUsers
+(
+CustomerUserId INT IDENTITY PRIMARY KEY,
+CustomerId INT NOT NULL,
+FirmId INT NULL,
+UserName VARCHAR(100),
+MobileNumber VARCHAR(20) NULL, --Standardized length     
+IsActive BIT DEFAULT 1,
+CreatedAt DATETIME DEFAULT GETDATE(),
+UpdatedAt DATETIME NULL,
+IsDeleted BIT DEFAULT 0
+--CONSTRAINT FK_CustomerUsers_Customer FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId)
+)
+
+
 CREATE TABLE DutyExpenses
 (
     DutyExpenseId INT IDENTITY PRIMARY KEY,

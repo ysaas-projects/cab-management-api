@@ -327,5 +327,53 @@ namespace cab_management.Controllers
             await _context.SaveChangesAsync();
             return ApiResponse(true, "Firm deleted successfully");
         }
+
+        // ================================
+        // GET LOGIN FIRM → Firm-Admin + Super-Admin
+        // ================================
+        [HttpGet("me")]
+        [Authorize(Roles = "Firm-Admin,Super-Admin")]
+        public async Task<IActionResult> GetMyFirm()
+        {
+            var firmIdClaim = User.FindFirst("firmId")?.Value;
+
+            // 🔹 If user has no firm (eg. Super-Admin without firm)
+            if (string.IsNullOrEmpty(firmIdClaim))
+            {
+                return ApiResponse(true, "User has no firm assigned", null);
+            }
+
+            int firmId = int.Parse(firmIdClaim);
+
+            var firm = await _context.Firms
+                .Where(f => f.FirmId == firmId && !f.IsDeleted)
+                .Select(f => new FirmResponseDto
+                {
+                    FirmId = f.FirmId,
+                    FirmName = f.FirmName,
+                    FirmCode = f.FirmCode,
+                    IsActive = f.IsActive,
+                    FirmDetails = f.FirmDetails
+                        .Where(fd => !fd.IsDeleted)
+                        .Select(fd => new FirmDetailsDto
+                        {
+                            FirmDetailsId = fd.FirmDetailsId,
+                            Address = fd.Address,
+                            ContactNumber = fd.ContactNumber,
+                            ContactPerson = fd.ContactPerson,
+                            GstNumber = fd.GstNumber,
+                            LogoImagePath = fd.LogoImagePath,
+                            IsActive = fd.IsActive
+                        })
+                        .FirstOrDefault()
+                })
+                .FirstOrDefaultAsync();
+
+            if (firm == null)
+                return ApiResponse(false, "Firm not found", error: "NotFound");
+
+            return ApiResponse(true, "Login firm retrieved successfully", firm);
+        }
+
     }
 }

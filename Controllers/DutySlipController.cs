@@ -39,7 +39,6 @@ namespace cab_management.Controllers
             return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         }
 
-        // ================= CREATE DUTY SLIP =================
         [HttpPost]
         public async Task<IActionResult> CreateDutySlip([FromBody] CreateDutySlipDto dto)
         {
@@ -51,17 +50,21 @@ namespace cab_management.Controllers
                         .ToList(),
                     statusCode: 400);
 
+            var firmId = GetFirmIdFromToken();
+            if (firmId == null)
+                return ApiResponse(false, "Unauthorized", statusCode: 401);
+
+            var userId = GetUserIdFromToken();
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
             try
             {
-                var firmId = GetFirmIdFromToken();
-                if (firmId == null)
-                    return ApiResponse(false, "Unauthorized", statusCode: 401);
-                var userId = GetUserIdFromToken(); // ✅ FROM TOKEN
-
+                // ================= 1️⃣ CREATE DUTY SLIP =================
                 var dutySlip = new DutySlip
                 {
                     BookedDate = dto.BookedDate,
-                    BookedBy = userId,              // ✅ TOKEN USER
+                    BookedBy = userId,
                     FirmId = firmId.Value,
                     CustomerId = dto.CustomerId,
                     RequestedCab = dto.RequestedCab,
@@ -72,16 +75,55 @@ namespace cab_management.Controllers
                 };
 
                 _context.DutySlips.Add(dutySlip);
+                await _context.SaveChangesAsync(); // 🔑 DutySlipId generated
+
+                // ================= 2️⃣ VALIDATE CUSTOMER USERS =================
+                var validUserIds = await _context.CustomerUsers
+                    .Where(x =>
+                        dto.CustomerUserIds.Contains(x.CustomerUserId) &&
+                        !x.IsDeleted
+                    )
+                    .Select(x => x.CustomerUserId)
+                    .ToListAsync();
+
+                if (validUserIds.Count != dto.CustomerUserIds.Count)
+                {
+                    await transaction.RollbackAsync();
+                    return ApiResponse(false, "Invalid Customer User selection", statusCode: 400);
+                }
+
+                // ================= 3️⃣ SAVE DUTYSLIP CUSTOMER USERS =================
+                foreach (var customerUserId in validUserIds)
+                {
+                    _context.DutySlipCustomerUsers.Add(new DutySlipCustomerUser
+                    {
+                        DutySlipId = dutySlip.DutySlipId,
+                        CustomerUserId = customerUserId,
+                        CreatedAt = DateTime.UtcNow,
+                        IsDeleted = false
+                    });
+                }
+
                 await _context.SaveChangesAsync();
 
-                return ApiResponse(true, "Duty slip created successfully", dutySlip, statusCode: 201);
+                // ================= 4️⃣ COMMIT =================
+                await transaction.CommitAsync();
+
+                return ApiResponse(
+                    true,
+                    "Duty slip + customer users created successfully",
+                    new { dutySlip.DutySlipId },
+                    statusCode: 201
+                );
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error creating duty slip");
                 return ApiResponse(false, "Error creating duty slip", error: ex.Message, statusCode: 500);
             }
         }
+
 
         // ================= ASSIGN DRIVER =================
         [HttpPut("{id}/assign-driver")]
@@ -355,18 +397,211 @@ namespace cab_management.Controllers
 					: 0
 			);
 
-			// ------------------ RESPONSE ------------------
-			var result = new DutySlipWithExpensesDto
-			{
-				DutySlip = dutySlip,
-				Expenses = expenses,
-				TotalExpenseAmount = totalExpense
-			};
+            var customerUsers = await _context.DutySlipCustomerUsers
+    .Include(x => x.CustomerUser)
+    .Where(x =>
+        x.DutySlipId == dutySlipId &&
+        !x.IsDeleted
+    )
+    .Select(x => new
+    {
+        x.CustomerUser.CustomerUserId,
+        x.CustomerUser.UserName,
+        x.CustomerUser.MobileNumber
+    })
+    .ToListAsync();
 
-			return ApiResponse(true, "Duty slip details fetched", result);
+            // ------------------ RESPONSE ------------------
+            var result = new
+            {
+                DutySlip = dutySlip,
+                CustomerUsers = customerUsers,
+                Expenses = expenses,
+                TotalExpenseAmount = totalExpense
+            };
+
+
+            return ApiResponse(true, "Duty slip details fetched", result);
 		}
 
+        // ================= INVOICE (PER DUTY SLIP) =================
+        [HttpGet("{id}/invoice")]
+        public async Task<IActionResult> GetInvoiceByDutySlip(int id)
+        {
+            var firmId = GetFirmIdFromToken();
+            if (firmId == null)
+                return ApiResponse(false, "Unauthorized", statusCode: 401);
+
+            var dutySlip = await _context.DutySlips
+                .Include(x => x.Customer)
+                .Include(x => x.DriverDetail)
+                .Include(x => x.RequestedCabNav)
+                .Include(x => x.SentCabNav)
+                .Where(x =>
+                    x.DutySlipId == id &&
+                    x.FirmId == firmId &&
+                    !x.IsDeleted
+                )
+                .Select(x => new DutySlipResponseDto
+                {
+                    DutySlipId = x.DutySlipId,
+
+                    BookedDate = x.BookedDate,
+                    BookedBy = x.BookedBy,
+
+                    FirmId = x.FirmId,
+                    FirmName = x.Firm.FirmName,
+
+                    CustomerId = x.CustomerId,
+                    CustomerName = x.Customer.CustomerName,
+
+                    // ✅ ADDRESS & GST FROM CUSTOMER
+                    CustomerAddress = x.Customer.Address,
+                    CustomerGstNumber = x.Customer.GstNumber,
 
 
-	}
+                    DriverDetailId = x.DriverDetailId,
+                    DriverName = x.DriverDetail != null
+        ? x.DriverDetail.DriverName
+        : null,
+
+                    RequestedCab = x.RequestedCab,
+                    RequestedCabType = x.RequestedCabNav != null
+        ? x.RequestedCabNav.CabType
+        : null,
+
+                    SentCab = x.SentCab,
+                    SentCabType = x.SentCabNav != null
+        ? x.SentCabNav.CabType
+        : null,
+
+                    CabNumber = x.CabNumber,
+
+                    StartKms = x.StartKms,
+                    StartDateTime = x.StartDateTime,
+
+                    CloseKms = x.CloseKms,
+                    CloseDateTime = x.CloseDateTime,
+
+                    TotalKms = x.TotalKms,
+                    TotalTimeInMin = x.TotalTimeInMin,
+
+                    Destination = x.Destination,
+                    Status = x.Status,
+
+                    CreatedAt = x.CreatedAt
+                })
+
+                .FirstOrDefaultAsync();
+
+            if (dutySlip == null)
+                return ApiResponse(false, "Duty slip not found", statusCode: 404);
+
+            var expenses = await _context.DutyExpenses
+                .Where(x =>
+                    x.DutyId == id &&
+                    x.FirmId == firmId &&
+                    !x.IsDeleted
+                )
+                .Select(x => new
+                {
+                    x.ExpenseType,
+                    x.Description,
+                    x.ExpenseAmount
+                })
+                .ToListAsync();
+
+            decimal expenseTotal = expenses.Sum(x =>
+                decimal.TryParse(x.ExpenseAmount, out var amt) ? amt : 0
+            );
+
+            var customerUsers = await _context.DutySlipCustomerUsers
+    .Include(x => x.CustomerUser)
+    .Where(x =>
+        x.DutySlipId == id &&
+        !x.IsDeleted
+    )
+    .Select(x => new
+    {
+        x.CustomerUser.CustomerUserId,
+        x.CustomerUser.UserName,
+        x.CustomerUser.MobileNumber
+    })
+    .ToListAsync();
+
+
+            var result = new
+            {
+                DutySlip = dutySlip,
+                CustomerUsers = customerUsers,
+                Expenses = expenses,
+                ExpenseTotal = expenseTotal
+            };
+
+            return ApiResponse(true, "Invoice data fetched successfully", result);
+        }
+
+        [HttpPost("{dutySlipId}/customer-users")]
+        public async Task<IActionResult> AddCustomerUsers(
+    int dutySlipId,
+    [FromBody] DutySlipCustomerUserCreateDto dto)
+        {
+            // 1️⃣ ID mismatch check
+            if (dutySlipId != dto.DutySlipId)
+                return ApiResponse(false, "DutySlipId mismatch", statusCode: 400);
+
+            // 2️⃣ DutySlip exists?
+            var dutySlipExists = await _context.DutySlips
+                .AnyAsync(x => x.DutySlipId == dto.DutySlipId && !x.IsDeleted);
+
+            if (!dutySlipExists)
+                return ApiResponse(false, "Invalid DutySlip", statusCode: 400);
+
+            // 3️⃣ Validate CustomerUsers (FK replacement)
+            var validUserIds = await _context.CustomerUsers
+                .Where(x =>
+                    dto.CustomerUserIds.Contains(x.CustomerUserId) &&
+                    !x.IsDeleted
+                )
+                .Select(x => x.CustomerUserId)
+                .ToListAsync();
+
+            if (validUserIds.Count != dto.CustomerUserIds.Count)
+                return ApiResponse(
+                    false,
+                    "Invalid Customer User selection",
+                    statusCode: 400
+                );
+
+            // 4️⃣ Prevent duplicates
+            var existingUserIds = await _context.DutySlipCustomerUsers
+                .Where(x =>
+                    x.DutySlipId == dto.DutySlipId &&
+                    !x.IsDeleted
+                )
+                .Select(x => x.CustomerUserId)
+                .ToListAsync();
+
+            var newUserIds = validUserIds
+                .Except(existingUserIds)
+                .ToList();
+
+            // 5️⃣ Save
+            foreach (var userId in newUserIds)
+            {
+                _context.DutySlipCustomerUsers.Add(new DutySlipCustomerUser
+                {
+                    DutySlipId = dto.DutySlipId,
+                    CustomerUserId = userId,
+                    CreatedAt = DateTime.Now,
+                    IsDeleted = false
+                });
+            }
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse(true, "Customer users added successfully");
+        }
+
+    }
 }

@@ -366,3 +366,5 @@ FodyWeavers.xsd
 /uploads
 
 /wwwroot
+
+/appsettings.json

@@ -39,6 +39,9 @@ namespace cab_management.Data
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<InvoiceItem> InvoiceItems { get; set; }
         public DbSet<CabNumberDirectory> CabNumberDirectory { get; set; }
+        public DbSet<CustomerUser> CustomerUsers { get; set; }
+        public DbSet<DutySlipCustomerUser> DutySlipCustomerUsers { get; set; }
+
         public DbSet<TourPackage> TourPackages { get; set; }
         public DbSet<Season> Seasons { get; set; }
         public DbSet<PackagePricing> PackagePricings { get; set; }

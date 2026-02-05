@@ -128,6 +128,10 @@ namespace cab_management.Models
         public int? RequestedCab { get; set; }
 
         public string? Destination { get; set; }
+        [Required]
+        [MinLength(1, ErrorMessage = "Select at least one customer user")]
+        public List<int> CustomerUserIds { get; set; } = new();
+
 
         // ✅ DEFAULT STATUS
         public string Status { get; set; } = "Booked";
@@ -223,29 +227,30 @@ namespace cab_management.Models
     {
         public int DutySlipId { get; set; }
 
-        public DateTime BookedDate { get; set; }
-        public int BookedBy { get; set; }
-        public string? BookedByName { get; set; }
+        public DateTime? BookedDate { get; set; }
+        public int? BookedBy { get; set; }
 
         public int FirmId { get; set; }
         public string? FirmName { get; set; }
+
         public int CustomerId { get; set; }
-        public string? CustomerName { get; set; }   // ✅ ADD
+        public string? CustomerName { get; set; }
+
+        // ✅ NEW (FOR INVOICE - TO SECTION)
+        public string? CustomerAddress { get; set; }
+        public string? CustomerContactNumber { get; set; }
+        public string? CustomerGstNumber { get; set; }
 
         public int? DriverDetailId { get; set; }
-        public string? DriverName { get; set; }     // ✅ ADD
+        public string? DriverName { get; set; }
 
         public int? RequestedCab { get; set; }
-        public string? RequestedCabType { get; set; } // ✅ ADD (CabType)
+        public string? RequestedCabType { get; set; }
 
         public int? SentCab { get; set; }
-        public string? SentCabType { get; set; }      // ✅ ADD (CabType)
+        public string? SentCabType { get; set; }
 
         public string? CabNumber { get; set; }
-
-        public DateTime? ReportingDateTime { get; set; }
-        public string? ReportingAddress { get; set; }
-        public string? ReportingGeoLocation { get; set; }
 
         public decimal? StartKms { get; set; }
         public DateTime? StartDateTime { get; set; }
@@ -257,12 +262,11 @@ namespace cab_management.Models
         public int? TotalTimeInMin { get; set; }
 
         public string? Destination { get; set; }
-        public string? PaymentMode { get; set; }
         public string? Status { get; set; }
 
         public DateTime CreatedAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
     }
+
 
 
 

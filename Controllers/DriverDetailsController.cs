@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using cab_management.Models;
 using System.Security.Claims;
 
 namespace cab_management.Controllers
@@ -44,7 +45,7 @@ namespace cab_management.Controllers
         // ==============================
         [HttpGet]
         public async Task<IActionResult> GetDriverDetails()
-         {
+        {
             try
             {
                 var firmId = GetFirmIdFromToken();
@@ -52,7 +53,7 @@ namespace cab_management.Controllers
                     return Unauthorized("FirmId not found in token");
 
                 var drivers = await _context.DriverDetails
-                    .Where(d => d.IsDeleted== false && d.FirmId == firmId)
+                    .Where(d => d.IsDeleted == false && d.FirmId == firmId)
                     .Include(d => d.Firm)
                     .Include(d => d.User)
                     .Select(d => new DriverDetailResponseDTO
@@ -91,7 +92,7 @@ namespace cab_management.Controllers
                 var driver = await _context.DriverDetails
                     .Where(d =>
                         d.DriverDetailId == id &&
-                        d.IsDeleted==false &&
+                        d.IsDeleted == false &&
                         d.FirmId == firmId)
                     .Include(d => d.Firm)
                     .Include(d => d.User)
@@ -120,13 +121,12 @@ namespace cab_management.Controllers
                 return ApiResponse(false, "Error", ex.Message);
             }
         }
-
-        // ==============================
-        // CREATE DRIVER
-        // ==============================
         [HttpPost]
+        [Authorize(Roles = "Firm-Admin,Super-Admin")]
         public async Task<IActionResult> CreateDriverDetails([FromBody] AddDriverDetailDTO dto)
         {
+            await using var tx = await _context.Database.BeginTransactionAsync();
+
             try
             {
                 if (!ModelState.IsValid)
@@ -138,10 +138,55 @@ namespace cab_management.Controllers
                 if (firmId == null || userId == null)
                     return Unauthorized("Invalid token");
 
+                var firm = await _context.Firms
+                    .FirstOrDefaultAsync(f => f.FirmId == firmId && !f.IsDeleted);
+
+                if (firm == null)
+                    return ApiResponse(false, "Firm not found");
+
+                var last4 = dto.MobileNumber[^4..];
+                var driverUsername = $"{firm.FirmCode}-DR-{last4}";
+
+                if (await _context.Users.AnyAsync(u => u.UserName == driverUsername))
+                {
+                    await tx.RollbackAsync();
+                    return ApiResponse(false, "Username already exists");
+                }
+
+                var driverUser = new User
+                {
+                    UserName = driverUsername,
+                    FirmId = firmId.Value,
+                    MobileNumber = dto.MobileNumber,
+                    IsActive = dto.IsActive,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("12345678"),
+                    SecurityStamp = Guid.NewGuid(),
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Users.Add(driverUser);
+                await _context.SaveChangesAsync();
+
+                var driverRole = await _context.Roles
+                    .FirstOrDefaultAsync(r => r.RoleName == "Firm-Driver");
+
+                if (driverRole == null)
+                {
+                    await tx.RollbackAsync();
+                    return ApiResponse(false, "Firm-Driver role not found");
+                }
+
+                _context.UserRoles.Add(new UserRole
+                {
+                    UserId = driverUser.UserId,
+                    RoleId = driverRole.RoleId,
+                    IsActive = true
+                });
+
                 var driver = new DriverDetail
                 {
                     FirmId = firmId.Value,
-                    UserId = userId.Value,
+                    UserId = driverUser.UserId,
                     DriverName = dto.DriverName,
                     MobileNumber = dto.MobileNumber,
                     IsActive = dto.IsActive,
@@ -149,16 +194,24 @@ namespace cab_management.Controllers
                     IsDeleted = false
                 };
 
-                await _context.DriverDetails.AddAsync(driver);
+                _context.DriverDetails.Add(driver);
                 await _context.SaveChangesAsync();
 
-                return ApiResponse(true, "Driver created successfully", driver);
+                await tx.CommitAsync();
+
+                return ApiResponse(true, "Driver created successfully", new
+                {
+                    driverDetailId = driver.DriverDetailId
+                });
             }
             catch (Exception ex)
             {
+                await tx.RollbackAsync();
                 return ApiResponse(false, "Something went wrong", ex.Message);
             }
         }
+
+
 
         // ==============================
         // UPDATE DRIVER
@@ -178,7 +231,7 @@ namespace cab_management.Controllers
                 var driver = await _context.DriverDetails
                     .FirstOrDefaultAsync(d =>
                         d.DriverDetailId == id &&
-                        d.IsDeleted == false&&
+                        d.IsDeleted == false &&
                         d.FirmId == firmId);
 
                 if (driver == null)
