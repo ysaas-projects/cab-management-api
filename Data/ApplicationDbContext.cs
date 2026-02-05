@@ -46,6 +46,9 @@ namespace cab_management.Data
         public DbSet<CabNumberDirectory> CabNumberDirectory { get; set; }
         public DbSet<CustomerUser> CustomerUsers { get; set; }
 
+        public DbSet<TourPackage> TourPackages { get; set; }
+        public DbSet<Season> Seasons { get; set; }
+        public DbSet<PackagePricing> PackagePricings { get; set; }
 
 
         // =========================

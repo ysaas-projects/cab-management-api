@@ -48,30 +48,31 @@ namespace cab_management.Models
 		public bool IsActive { get; set; } = true;
 	}
 
-	// ================================
-	// CREATE (Firm + FirmDetail)
-	// ================================
-	public class FirmDetailsFirmCreateDto
-	{
-		[Required]
-		public string FirmName { get; set; } = null!;
+    // ================================
+    // CREATE (Firm + FirmDetail)
+    // ================================
+    public class FirmDetailsFirmCreateDto
+    {
+        [Required]
+        public string FirmName { get; set; } = null!;
 
-		[Required]
-		public string FirmCode { get; set; } = null!;
+        [Required]
+        public string FirmCode { get; set; } = null!;
 
-		public bool IsActive { get; set; } = true;
+        public bool IsActive { get; set; } = true;
 
-		public string? Address { get; set; }
-		public string? ContactNumber { get; set; }
-		public string? ContactPerson { get; set; }
-		public string? GstNumber { get; set; }
-		public string? LogoImagePath { get; set; }
-	}
+        public string? Address { get; set; }
+        public string? ContactNumber { get; set; }
+        public string? ContactPerson { get; set; }
+        public string? GstNumber { get; set; }
 
-	// ================================
-	// UPDATE DTO
-	// ================================
-	public class FirmUpdateDto
+        public IFormFile? Logo { get; set; }   // ✅ ADD THIS
+    }
+
+    // ================================
+    // UPDATE DTO
+    // ================================
+    public class FirmUpdateDto
 	{
 		[Required]
 		public int FirmId { get; set; }

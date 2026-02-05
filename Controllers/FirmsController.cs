@@ -117,7 +117,8 @@ namespace cab_management.Controllers
         // ================================
         [HttpPost]
         [Authorize(Roles = "Super-Admin")]
-        public async Task<IActionResult> CreateFirm([FromBody] FirmDetailsFirmCreateDto dto)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> CreateFirm([FromForm] FirmDetailsFirmCreateDto dto)
         {
             if (!ModelState.IsValid)
                 return ApiResponse(false, "Invalid data");
@@ -134,6 +135,38 @@ namespace cab_management.Controllers
 
             try
             {
+                // ================================
+                // 1️⃣ SAVE LOGO IMAGE (IF EXISTS)
+                // ================================
+                string? logoPath = null;
+
+                if (dto.Logo != null && dto.Logo.Length > 0)
+                {
+                    var uploadsFolder = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "wwwroot",
+                        "uploads"
+                    );
+
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
+
+                    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(dto.Logo.FileName)}";
+                    var filePath = Path.Combine(uploadsFolder, fileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await dto.Logo.CopyToAsync(stream);
+                    }
+
+                    var request = HttpContext.Request;
+                    var baseUrl = $"{request.Scheme}://{request.Host}";
+                    logoPath = $"{baseUrl}/uploads/{fileName}";
+                }
+
+                // ================================
+                // 2️⃣ CREATE FIRM
+                // ================================
                 var firm = new Firm
                 {
                     FirmName = dto.FirmName.Trim(),
@@ -147,6 +180,9 @@ namespace cab_management.Controllers
                 _context.Firms.Add(firm);
                 await _context.SaveChangesAsync();
 
+                // ================================
+                // 3️⃣ CREATE FIRM DETAILS
+                // ================================
                 var firmDetail = new FirmDetail
                 {
                     FirmId = firm.FirmId,
@@ -154,7 +190,7 @@ namespace cab_management.Controllers
                     ContactNumber = dto.ContactNumber,
                     ContactPerson = dto.ContactPerson,
                     GstNumber = dto.GstNumber,
-                    LogoImagePath = dto.LogoImagePath,
+                    LogoImagePath = logoPath, // 👈 IMAGE PATH SAVED HERE
                     IsActive = true,
                     IsDeleted = false,
                     CreatedAt = DateTime.Now,
@@ -164,7 +200,9 @@ namespace cab_management.Controllers
                 _context.FirmDetails.Add(firmDetail);
                 await _context.SaveChangesAsync();
 
-                // OPTIONAL: auto-create default Firm-Admin
+                // ================================
+                // 4️⃣ AUTO CREATE FIRM-ADMIN USER
+                // ================================
                 var firmAdminRole = await _context.Roles
                     .FirstOrDefaultAsync(r => r.RoleName == "Firm-Admin");
 
@@ -185,7 +223,6 @@ namespace cab_management.Controllers
                     {
                         UserId = adminUser.UserId,
                         RoleId = firmAdminRole.RoleId,
-                        //FirmId = firm.FirmId,
                         IsActive = true
                     });
 
@@ -194,10 +231,14 @@ namespace cab_management.Controllers
 
                 await transaction.CommitAsync();
 
+                // ================================
+                // 5️⃣ RESPONSE
+                // ================================
                 return ApiResponse(true, "Firm and FirmDetails created successfully", new
                 {
                     firm.FirmId,
-                    firm.FirmName
+                    firm.FirmName,
+                    LogoImagePath = logoPath
                 });
             }
             catch (Exception ex)
