@@ -79,8 +79,9 @@ namespace cab_management.Models
         public DateTime? UpdatedAt { get; set; }
 
         public bool IsDeleted { get; set; } = false;
+        public bool IsBillingLocked { get; set; } = false;
 
-        [ForeignKey(nameof(FirmId))]
+		[ForeignKey(nameof(FirmId))]
         public virtual Firm Firm { get; set; }
 
 
@@ -95,6 +96,8 @@ namespace cab_management.Models
 
         [ForeignKey(nameof(SentCab))]
         public virtual Cab SentCabNav { get; set; }               // ✅ ADD
+
+
     }
 
 

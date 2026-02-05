@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using cab_management.Models;
 using System.Security.Claims;
 
 namespace cab_management.Controllers
@@ -138,10 +139,36 @@ namespace cab_management.Controllers
                 if (firmId == null || userId == null)
                     return Unauthorized("Invalid token");
 
+                var firm = await _context.Firms.FirstOrDefaultAsync(f => f.FirmId == firmId.Value && !f.IsDeleted);
+                if (firm == null)
+                    return ApiResponse(false, "Firm not found", null);
+
+                var last4 = dto.MobileNumber[^4..];
+                var driverUsername = $"{firm.FirmCode}-DR-{last4}";
+
+                await using var tx = await _context.Database.BeginTransactionAsync();
+
+                if (await _context.Users.AnyAsync(u => u.UserName == driverUsername))
+                    return ApiResponse(false, "Username already exists", driverUsername);
+
+                var driverUser = new User
+                {
+                    UserName = driverUsername,
+                    FirmId = firmId.Value,
+                    MobileNumber = dto.MobileNumber,
+                    IsActive = dto.IsActive,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("12345678"),
+                    SecurityStamp = Guid.NewGuid(),
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _context.Users.AddAsync(driverUser);
+                await _context.SaveChangesAsync();
+
                 var driver = new DriverDetail
                 {
                     FirmId = firmId.Value,
-                    UserId = userId.Value,
+                    UserId = driverUser.UserId,
                     DriverName = dto.DriverName,
                     MobileNumber = dto.MobileNumber,
                     IsActive = dto.IsActive,
@@ -151,6 +178,8 @@ namespace cab_management.Controllers
 
                 await _context.DriverDetails.AddAsync(driver);
                 await _context.SaveChangesAsync();
+
+                await tx.CommitAsync();
 
                 return ApiResponse(true, "Driver created successfully", driver);
             }

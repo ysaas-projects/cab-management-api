@@ -29,16 +29,23 @@ namespace cab_management.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<PricingRule> PricingRules { get; set; }
-        public DbSet<CabPrice> CabPrices { get; set; }
+		public DbSet<PricingRules2> PricingRules2 { get; set; }
+		public DbSet<CabPrice> CabPrices { get; set; }
         public DbSet<Cab> Cabs { get; set; }
         public DbSet<Customer>Customers { get; set; }
         public DbSet<DriverDetail> DriverDetails { get; set; }
         public DbSet<DutyExpense> DutyExpenses { get; set; }
         public DbSet<DutySlip> DutySlips { get; set; }
-        public DbSet<DutyLocation> DutyLocations { get; set; }
+
+		public DbSet<DutySlipBill> DutySlipBills { get; set; }
+		public DbSet<DutySlipBillDetail> DutySlipBillDetails { get; set; }
+
+		public DbSet<DutyLocation> DutyLocations { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<InvoiceItem> InvoiceItems { get; set; }
         public DbSet<CabNumberDirectory> CabNumberDirectory { get; set; }
+        public DbSet<CustomerUser> CustomerUsers { get; set; }
+
 
 
         // =========================

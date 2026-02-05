@@ -318,3 +318,18 @@ CREATE TABLE DutyExpenses
 );
 -- CONSTRAINT FK_DutyExpenses_Duties
 --CONSTRAINT FK_DutyExpenses_Duties FOREIGN KEY (DutyId) REFERENCES Duties(DutyId)
+
+
+CREATE TABLE CustomerUsers
+(
+CustomerUserId INT IDENTITY PRIMARY KEY,
+FirmId INT NULL,
+CustomerId INT NOT NULL,
+UserName VARCHAR(100),
+MobileNumber VARCHAR(20) NULL, --Standardized length     
+IsActive BIT DEFAULT 1,
+CreatedAt DATETIME DEFAULT GETDATE(),
+UpdatedAt DATETIME NULL,
+IsDeleted BIT DEFAULT 0
+--CONSTRAINT FK_CustomerUsers_Customer FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId)
+)
