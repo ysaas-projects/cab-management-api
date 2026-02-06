@@ -114,3 +114,18 @@ CREATE TABLE PackagePricings (
     -- CONSTRAINT FK_PackagePricing_Package
      --   FOREIGN KEY (PackageId) REFERENCES TourPackages(PackageId)
 );
+
+CREATE TABLE DutySlipCustomerUsers (
+    DutySlipCustomerUserId INT IDENTITY PRIMARY KEY,
+    DutySlipId INT NOT NULL,
+    CustomerUserId INT NOT NULL,
+
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    IsDeleted BIT DEFAULT 0,
+    
+    --CONSTRAINT FK_DSCU_DutySlip 
+        --FOREIGN KEY (DutySlipId) REFERENCES DutySlips(DutySlipId),
+
+    --CONSTRAINT FK_DSCU_CustomerUser 
+        --FOREIGN KEY (CustomerUserId) REFERENCES CustomerUsers(CustomerUserId)
+);
