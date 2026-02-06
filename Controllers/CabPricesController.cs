@@ -250,5 +250,87 @@ namespace cab_management.Controllers
                 return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
             }
         }
-    }
+
+		// =====================================================
+		// GET CAB × PRICING RULE MATRIX
+		// =====================================================
+		[HttpGet("matrix")]
+		public async Task<IActionResult> GetCabPricingMatrix()
+		{
+			try
+			{
+				var firmId = GetFirmIdFromToken();
+				if (firmId == null)
+					return ApiResponse(false, "Invalid firm access!", error: "Unauthorized", statusCode: 401);
+
+				// Load base data
+				var cabs = await _context.Cabs
+					.Where(c =>
+						c.FirmId == firmId &&
+						!c.IsDeleted &&
+						c.IsActive)
+					.Select(c => new
+					{
+						c.CabId,
+						c.CabType
+					})
+					.ToListAsync();
+
+				var pricingRules = await _context.PricingRules
+					.Where(pr =>
+						pr.FirmId == firmId &&
+						!pr.IsDeleted &&
+						pr.IsActive)
+					.Select(pr => new
+					{
+						pr.PricingRuleId,
+						pr.RuleDetails
+					})
+					.ToListAsync();
+
+				var cabPrices = await _context.CabPrices
+					.Where(cp =>
+						cp.FirmId == firmId &&
+						!cp.IsDeleted)
+					.Select(cp => new
+					{
+						cp.CabPriceId,
+						cp.CabId,
+						cp.PricingRuleId,
+						cp.Price
+					})
+					.ToListAsync();
+
+				// CROSS JOIN + LEFT JOIN (LINQ)
+				var result =
+					from cab in cabs
+					from rule in pricingRules
+					join price in cabPrices
+						on new { cab.CabId, rule.PricingRuleId }
+						equals new { price.CabId, price.PricingRuleId }
+						into priceGroup
+					from pg in priceGroup.DefaultIfEmpty()
+					select new CabPricingMatrixDto
+					{
+						FirmId = firmId.Value,
+						CabId = cab.CabId,
+						CabType = cab.CabType,
+						PricingRuleId = rule.PricingRuleId,
+						PricingRuleName = rule.RuleDetails,
+						CabPriceId = pg?.CabPriceId,
+						Price = pg?.Price   // 👈 NULL if no match
+					};
+
+				return ApiResponse(true, "Cab pricing matrix fetched successfully", result);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Error fetching cab pricing matrix");
+				return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
+			}
+		}
+
+
+
+	}
 }

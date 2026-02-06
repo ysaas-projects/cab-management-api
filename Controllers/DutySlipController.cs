@@ -1,5 +1,6 @@
 ﻿using cab_management.Data;
 using cab_management.Models;
+using cab_management.Services.Billing;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -18,13 +19,17 @@ namespace cab_management.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<DutySlipsController> _logger;
+        private readonly IBillingService _billingService;
 
-        public DutySlipsController(
+
+		public DutySlipsController(
             ApplicationDbContext context,
-            ILogger<DutySlipsController> logger)
+            ILogger<DutySlipsController> logger,
+            IBillingService billingService)
         {
             _context = context;
             _logger = logger;
+            _billingService = billingService;
         }
 
         // ================= GET FirmId from JWT =================
@@ -39,6 +44,24 @@ namespace cab_management.Controllers
             return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         }
 
+
+		private IActionResult? CheckBillingLock(DutySlip dutySlip)
+		{
+			if (dutySlip.IsBillingLocked)
+			{
+				return ApiResponse(false,
+					"Billing is finalized. Duty slip cannot be modified.",
+					statusCode: 409);
+			}
+			return null;
+		}
+
+        //var lockResult = CheckBillingLock(dutySlip);
+        //if (lockResult != null) return lockResult;
+
+
+		// ================= CREATE DUTY SLIP =================
+		[HttpPost]
         [HttpPost]
         public async Task<IActionResult> CreateDutySlip([FromBody] CreateDutySlipDto dto)
         {
@@ -133,13 +156,23 @@ namespace cab_management.Controllers
             if (firmId == null)
                 return ApiResponse(false, "Unauthorized", statusCode: 401);
 
+
+
             var dutySlip = await _context.DutySlips
                 .FirstOrDefaultAsync(x => x.DutySlipId == id && x.FirmId == firmId && !x.IsDeleted);
 
             if (dutySlip == null)
                 return ApiResponse(false, "Duty slip not found", statusCode: 404);
 
-            dutySlip.DriverDetailId = dto.DriverDetailId;
+			// 🔒 ADD THIS
+			if (dutySlip.IsBillingLocked)
+			{
+				return ApiResponse(false,
+					"Billing is finalized. Cannot modify duty slip.",
+					statusCode: 409);
+			}
+
+			dutySlip.DriverDetailId = dto.DriverDetailId;
             dutySlip.ReportingAddress = dto.ReportingAddress;
             dutySlip.ReportingDateTime = dto.ReportingDateTime;
             dutySlip.SentCab = dto.SentCab;
@@ -166,7 +199,15 @@ namespace cab_management.Controllers
             if (dutySlip == null)
                 return ApiResponse(false, "Duty slip not found", statusCode: 404);
 
-            dutySlip.ReportingGeoLocation = dto.ReportingGeoLocation;
+			// 🔒 ADD THIS
+			if (dutySlip.IsBillingLocked)
+			{
+				return ApiResponse(false,
+					"Billing is finalized. Journey data cannot be modified.",
+					statusCode: 409);
+			}
+
+			dutySlip.ReportingGeoLocation = dto.ReportingGeoLocation;
             dutySlip.StartKms = dto.StartKms;
             dutySlip.StartKmsImagePath = dto.StartKmsImagePath;
             dutySlip.StartDateTime = dto.StartDateTime;
@@ -192,7 +233,14 @@ namespace cab_management.Controllers
             if (dutySlip == null)
                 return ApiResponse(false, "Duty slip not found", statusCode: 404);
 
-            dutySlip.CloseKms = dto.CloseKms;
+			if (dutySlip.IsBillingLocked)
+			{
+				return ApiResponse(false,
+					"Billing is finalized. KM and time cannot be changed.",
+					statusCode: 409);
+			}
+
+			dutySlip.CloseKms = dto.CloseKms;
             dutySlip.CloseKmsImagePath = dto.CloseKmsImagePath;
             dutySlip.CloseDateTime = dto.CloseDateTime;
             dutySlip.TotalKms = dto.TotalKms;
@@ -242,7 +290,14 @@ namespace cab_management.Controllers
             if (dutySlip == null)
                 return ApiResponse(false, "Duty slip not found", statusCode: 404);
 
-            dutySlip.PaymentMode = dto.PaymentMode;
+			if (dutySlip.IsBillingLocked)
+			{
+				return ApiResponse(false,
+					"Billing is finalized. Payment details cannot be changed.",
+					statusCode: 409);
+			}
+
+			dutySlip.PaymentMode = dto.PaymentMode;
             dutySlip.Status = "Bill-Pending";
             dutySlip.UpdatedAt = DateTime.UtcNow;
 
@@ -603,5 +658,92 @@ namespace cab_management.Controllers
             return ApiResponse(true, "Customer users added successfully");
         }
 
+		[HttpPost("{dutySlipId}/generate-bill")]
+		public async Task<IActionResult> GenerateBill(int dutySlipId)
+		{
+			try
+			{
+				var billId = await _billingService.GenerateAndSaveBillAsync(dutySlipId);
+
+				return ApiResponse(true, "Bill generated successfully", new
+				{
+					BillId = billId
+				});
+			}
+			catch (InvalidOperationException ex)
+			{
+				return ApiResponse(false, ex.Message, statusCode: 409);
+			}
+		}
+
+
+		[HttpGet("{dutySlipId}/bill-preview")]
+		public async Task<IActionResult> PreviewBill(int dutySlipId)
+		{
+			try
+			{
+				var preview = await _billingService.PreviewBillAsync(dutySlipId);
+				return ApiResponse(true, "Bill preview generated", preview);
+			}
+			catch (Exception ex)
+			{
+				return ApiResponse(false, ex.Message, statusCode: 400);
+			}
+		}
+
+
+
+		[HttpPost("finalize-bill/{billId}")]
+		public async Task<IActionResult> FinalizeBill(int billId)
+		{
+			try
+			{
+				await _billingService.FinalizeBillAsync(billId);
+
+				return ApiResponse(true, "Bill finalized successfully");
+			}
+			catch (InvalidOperationException ex)
+			{
+				return ApiResponse(false, ex.Message, statusCode: 409);
+			}
+			catch (Exception ex)
+			{
+				return ApiResponse(false, ex.Message, statusCode: 400);
+			}
+		}
+
+
+		[HttpPost("cancel-bill/{billId}")]
+		public async Task<IActionResult> CancelBill(
+			int billId,
+			[FromBody] CancelBillDto dto)
+		{
+			try
+			{
+				var userId = GetUserIdFromToken();
+
+				await _billingService.CancelBillAsync(
+					billId,
+					userId,
+					dto.Reason
+				);
+
+				return ApiResponse(true, "Bill cancelled successfully");
+			}
+			catch (InvalidOperationException ex)
+			{
+				return ApiResponse(false, ex.Message, statusCode: 409);
+			}
+			catch (Exception ex)
+			{
+				return ApiResponse(false, ex.Message, statusCode: 400);
+			}
+		}
+
+
+
+
+
+	}
     }
-}
+

@@ -110,4 +110,20 @@ namespace cab_management.Models
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }
+
+	public class CabPricingMatrixDto
+	{
+		public int FirmId { get; set; }
+
+		public int CabId { get; set; }
+		public string CabType { get; set; } = null!;
+
+		public int PricingRuleId { get; set; }
+		public string PricingRuleName { get; set; } = null!;
+
+		public int? CabPriceId { get; set; }   // 🔥 ADD THIS
+		public decimal? Price { get; set; }   // 👈 nullable
+		public bool HasPrice => Price.HasValue;
+	}
+
 }
