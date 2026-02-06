@@ -293,7 +293,7 @@ namespace cab_management.Controllers
                 details.ContactNumber = dto.ContactNumber;
                 details.ContactPerson = dto.ContactPerson;
                 details.GstNumber = dto.GstNumber;
-                details.LogoImagePath = dto.LogoImagePath;
+                //details.LogoImagePath = dto.LogoImagePath;
                 details.UpdatedAt = DateTime.Now;
 
                 await _context.SaveChangesAsync();
